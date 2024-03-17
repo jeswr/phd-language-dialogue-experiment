@@ -1,0 +1,56 @@
+
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents/> dct:abstract "This ontology extends the Commons 1.1 Parties and Situations ontology to define defines the concept of a software system, which may or may not be autonomous. Other concepts that were originally defined in this ontology have been replaced with their corresponding concepts in Commons." ;
+dct:license "https://opensource.org/licenses/MIT"^^xsd:anyURI ;
+rdf:type owl:Ontology ;
+rdfs:label "Agents Ontology" ;
+owl:imports <https://spec.edmcouncil.org/fibo/ontology/master/latest/FND/Relations/Relations/> ,
+<https://spec.edmcouncil.org/fibo/ontology/master/latest/FND/Utilities/AnnotationVocabulary/> ,
+<https://www.omg.org/spec/Commons/AnnotationVocabulary/> ,
+<https://www.omg.org/spec/Commons/Designators/> ,
+<https://www.omg.org/spec/Commons/TextDatatype/> ;
+owl:versionIRI <https://spec.edmcouncil.org/fibo/ontology/master/latest/FND/AgentsAndPeople/Agents/> ;
+skos:changeNote "The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of the ontology was modified to eliminate deprecations that are more than 6 months old." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of the ontology was modified to replace content that is now available in the OMG Commons Ontology Library (Commons) v1.1 (FND-380)." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified per the issue resolutions identified in the FIBO FND 1.0 FTF report and in https://spec.edmcouncil.org/fibo/ontology/FND/1.0/AboutFND-1.0/." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified to add a custom datatype for text values (which might be either xsd:string or rdf:langString) and use that in the restriction on hasName on autonomous agent." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified to add notes on the custom Text datatype indicating that it is outside the RL profile and that if someone wants to use this ontology with OWL 2 RL rules they might want to comment this out / eliminate it where it is used." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified to address hygiene issues with respect to text formatting." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified to eliminate duplication with concepts in LCC." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified to loosen the range restriction on hasName to rdfs:Literal, facilitating multi-lingual name representation." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified to support the FIBO 2.0 RFC, primarily with respect to equivalence relationships to LCC." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified to use the Commons Ontology Library (Commons) Annotation Vocabulary rather than the OMG's Specification Metadata vocabulary." ,
+"The https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents.rdf version of this ontology was modified to use the Commons Ontology Library (Commons) rather than the OMG's Languages, Countries and Codes (LCC) and to eliminate redundancies in FIBO as appropriate." ,
+"The https://spec.edmcouncil.org/fibo/ontology/Foundations/20130601/AgentsAndPeople/Agents.owl version of the ontology was revised in advance of the September 2013 New Brunswick, NJ meeting, as follows: (1) to use slash style URI/IRIs (also called 303 URIs, vs. hash style) as required to support server side processing (2) to use version-independent IRIs for all definitions internally as opposed to version-specific IRIs (3) to change the file suffix from .owl to .rdf to increase usability in RDF tools (4) to use 4-level abbreviations and corresponding namespace prefixes for all FIBO ontologies, reflecting a family/specification/module/ontology structure (5) to incorporate changes to the specification metadata to support documentation at the family, specification, module, and ontology level, similar to the abbreviations." ;
+<https://spec.edmcouncil.org/fibo/ontology/FND/Utilities/AnnotationVocabulary/hasMaturityLevel> <https://spec.edmcouncil.org/fibo/ontology/FND/Utilities/AnnotationVocabulary/Release> ;
+<https://www.omg.org/spec/Commons/AnnotationVocabulary/copyright> "Copyright (c) 2013-2024 EDM Council, Inc." ,
+"Copyright (c) 2013-2024 Object Management Group, Inc." .
+
+<https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents/AutomatedSystem> rdf:type owl:Class ;
+rdfs:isDefinedBy <https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents/> ;
+rdfs:label "automated system" ;
+rdfs:subClassOf <https://www.omg.org/spec/Commons/PartiesAndSituations/Agent> ;
+skos:definition "system that reduces or eliminates the need for human involvement in order to complete a task" ;
+<https://www.omg.org/spec/Commons/AnnotationVocabulary/adaptedFrom> "https://www.reference.com/technology/automated-system-c85583d0f17a632" .
+
+<https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents/AutonomousAgent> rdf:type owl:Class ;
+rdfs:isDefinedBy <https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents/> ;
+owl:deprecated "true"^^xsd:boolean ;
+owl:equivalentClass <https://www.omg.org/spec/Commons/PartiesAndSituations/Agent> .
+
+<https://www.omg.org/spec/Commons/PartiesAndSituations/Agent> rdf:type owl:Class ;
+rdfs:subClassOf [
+rdf:type owl:Restriction ;
+owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
+owl:onDataRange <https://www.omg.org/spec/Commons/TextDatatype/Text> ;
+owl:onProperty <https://spec.edmcouncil.org/fibo/ontology/FND/Relations/Relations/hasTextualName>
+] .
+
+<https://www.omg.org/spec/Commons/PartiesAndSituations/SoftwareAgent> rdf:type owl:Class ;
+rdfs:subClassOf <https://spec.edmcouncil.org/fibo/ontology/FND/AgentsAndPeople/Agents/AutomatedSystem> .
