@@ -11,4 +11,4 @@ json_data='{
 }'
 
 # Send POST request using cURL
-curl -X POST -H "Content-Type: application/json" -d "$json_data" http://localhost:3001/humans
+curl -X POST -H "Content-Type: application/ld+json" -d "$json_data" http://localhost:3001/humans
