@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import express from 'express';
 import rdfHandler from '@rdfjs/express-handler'
-import { Store, DataFactory } from 'n3';
+import { Store, DataFactory, Writer } from 'n3';
 import { postDataset } from './datasetFetch.js';
 import dereference, { type IDereferenceOptions } from 'rdf-dereference';
 import { promisifyEventEmitter } from 'event-emitter-promisify';
@@ -37,6 +37,12 @@ const AGENT_OF = namedNode("https://www.omg.org/spec/Commons/PartiesAndSituation
 
 const aliceSchedule = dereferenceToStore(path.join(process.cwd(), 'aliceSchedule.jsonld'));
 const bobSchedule = dereferenceToStore(path.join(process.cwd(), 'bobSchedule.jsonld'));
+
+const junSchedule = dereferenceToStore(path.join(process.cwd(), 'sampleData', 'junSchedule.jsonld'));
+const nigelSchedule = dereferenceToStore(path.join(process.cwd(), 'sampleData', 'nigelSchedule.jsonld'));
+
+const junTrig = junSchedule.then((schedule) => new Writer({ format: 'trig' }).quadsToString([...schedule]));
+const nigelTrig = junSchedule.then((schedule) => new Writer({ format: 'trig' }).quadsToString([...schedule]));
 
 const prefixes = {
     schema: 'http://schema.org/',
