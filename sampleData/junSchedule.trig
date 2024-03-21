@@ -1,0 +1,255 @@
+@prefix schema: <http://schema.org/> .
+@prefix ex: <http://example.org/> .
+
+ex:jun belief:believes ex:nigel .
+
+[]
+  acp:grant acl:Read, acl:Write ;  
+  acp:context [
+    acp:agent ex:nigel ;
+    acp:target <http://example.org/jun/events> ;
+  ] .
+
+<http://example.org/jun/events> {
+ex:jun a schema:Person ;
+  schema:name "Jun" ;
+  schema:hasOccupation [
+    a schema:Occupation ;
+    schema:name "Researcher"
+  ] ;
+  schema:hasSchedule [
+    a schema:ScheduleAction ;
+    schema:startTime "2024-03-20T09:00" ;
+    schema:endTime "2024-03-20T17:00" ;
+    schema:description "Research work at the lab"
+  ], [
+    a schema:ScheduleAction ;
+    schema:startTime "2024-03-20T18:30" ;
+    schema:endTime "2024-03-20T20:30" ;
+    schema:description "Departmental drinks"
+  ], [
+    a schema:ScheduleAction ;
+    schema:startTime "2024-03-21T10:00" ;
+    schema:endTime "2024-03-21T12:00" ;
+    schema:description "Meeting with research team"
+  ], [
+    a schema:ScheduleAction ;
+    schema:startTime "2024-03-21T14:00" ;
+    schema:endTime "2024-03-21T16:00" ;
+    schema:description "Prepare presentation for conference"
+  ], [
+    a schema:ScheduleAction ;
+    schema:startTime "2024-03-22T09:00" ;
+    schema:endTime "2024-03-22T17:00" ;
+    schema:description "Attend conference and present research"
+  ], [
+    a schema:ScheduleAction ;
+    schema:startTime "2024-03-23T10:00" ;
+    schema:endTime "2024-03-23T12:00" ;
+    schema:description "Collaborate with colleagues on research project"
+  ], [
+    a schema:ScheduleAction ;
+    schema:startTime "2024-03-23T19:00" ;
+    schema:endTime "2024-03-23T21:00" ;
+    schema:description "Dinner with visiting researchers"
+  ], [
+    a schema:ScheduleAction ;
+    schema:startTime "2024-03-24T09:00" ;
+    schema:endTime "2024-03-24T17:00" ;
+    schema:description "Analyze research data and write report"
+  ] .
+}
+
+<http://example.org/jun/favoriteRecipes> {
+  ex:jun schema:favoriteRecipe ex:pastaRecipe ;
+    schema:favoriteRecipe ex:cakeRecipe ;
+    schema:favoriteRecipe ex:soupRecipe .
+ex:pastaRecipe a schema:Recipe ;
+  schema:name "Pasta Recipe" ;
+  schema:description "A delicious pasta dish made with fresh ingredients" ;
+  schema:recipeIngredient [
+    schema:ingredient "pasta" ;
+  ], [
+    schema:ingredient "olive oil" ;
+  ], [
+    schema:ingredient "garlic" ;
+  ], [
+    schema:ingredient "tomatoes" ;
+  ], [
+    schema:ingredient "basil" ;
+  ], [
+    schema:ingredient "Parmesan cheese" ;
+  ] ;
+  schema:recipeInstructions "1. Cook the pasta according to package instructions. 2. Heat olive oil in a pan and sauté garlic. 3. Add tomatoes and basil, and cook until tomatoes are soft. 4. Toss cooked pasta with the sauce. 5. Serve with grated Parmesan cheese on top." .
+
+ex:cakeRecipe a schema:Recipe ;
+  schema:name "Cake Recipe" ;
+  schema:description "A moist and fluffy cake with a rich chocolate flavor" ;
+  schema:recipeIngredient [
+    schema:ingredient "flour" ;
+  ], [
+    schema:ingredient "sugar" ;
+  ], [
+    schema:ingredient "cocoa powder" ;
+  ], [
+    schema:ingredient "baking powder" ;
+  ], [
+    schema:ingredient "baking soda" ;
+  ], [
+    schema:ingredient "salt" ;
+  ], [
+    schema:ingredient "eggs" ;
+  ], [
+    schema:ingredient "milk" ;
+  ], [
+    schema:ingredient "vegetable oil" ;
+  ], [
+    schema:ingredient "vanilla extract" ;
+  ] ;
+  schema:recipeInstructions "1. Preheat the oven to 350°F. 2. In a mixing bowl, combine flour, sugar, cocoa powder, baking powder, baking soda, and salt. 3. In another bowl, whisk together eggs, milk, vegetable oil, and vanilla extract. 4. Gradually add the wet ingredients to the dry ingredients and mix until well combined. 5. Pour the batter into a greased cake pan. 6. Bake for 30-35 minutes or until a toothpick inserted into the center comes out clean. 7. Let the cake cool before frosting or serving." .
+
+ex:soupRecipe a schema:Recipe ;
+  schema:name "Soup Recipe" ;
+  schema:description "A comforting and hearty soup packed with vegetables and flavors" ;
+  schema:recipeIngredient [
+    schema:ingredient "onion" ;
+  ], [
+    schema:ingredient "carrots" ;
+  ], [
+    schema:ingredient "celery" ;
+  ], [
+    schema:ingredient "garlic" ;
+  ], [
+    schema:ingredient "potatoes" ;
+  ], [
+    schema:ingredient "tomatoes" ;
+  ], [
+    schema:ingredient "vegetable broth" ;
+  ], [
+    schema:ingredient "herbs" ;
+  ], [
+    schema:ingredient "salt" ;
+  ], [
+    schema:ingredient "pepper" ;
+  ] ;
+  schema:recipeInstructions "1. Heat olive oil in a large pot and sauté onion, carrots, celery, and garlic until softened. 2. Add potatoes, tomatoes, vegetable broth, herbs, salt, and pepper. 3. Bring to a boil, then reduce heat and simmer for about 20 minutes or until vegetables are tender. 4. Use an immersion blender to blend the soup until smooth, or leave it chunky if desired. 5. Adjust seasoning to taste. 6. Serve hot with crusty bread." .
+    ex:pastaRecipe a schema:Recipe ;
+      schema:name "Pasta Recipe" ;
+      schema:description "A delicious pasta dish made with fresh ingredients" ;
+      schema:recipeIngredient [
+        schema:ingredient "pasta" ;
+      ], [
+        schema:ingredient "olive oil" ;
+      ], [
+        schema:ingredient "garlic" ;
+      ], [
+        schema:ingredient "tomatoes" ;
+      ], [
+        schema:ingredient "basil" ;
+      ], [
+        schema:ingredient "Parmesan cheese" ;
+      ] ;
+      schema:recipeInstructions "1. Cook the pasta according to package instructions. 2. Heat olive oil in a pan and sauté garlic. 3. Add tomatoes and basil, and cook until tomatoes are soft. 4. Toss cooked pasta with the sauce. 5. Serve with grated Parmesan cheese on top." .
+
+    ex:cakeRecipe a schema:Recipe ;
+      schema:name "Cake Recipe" ;
+      schema:description "A moist and fluffy cake with a rich chocolate flavor" ;
+      schema:recipeIngredient [
+        schema:ingredient "flour" ;
+      ], [
+        schema:ingredient "sugar" ;
+      ], [
+        schema:ingredient "cocoa powder" ;
+      ], [
+        schema:ingredient "baking powder" ;
+      ], [
+        schema:ingredient "baking soda" ;
+      ], [
+        schema:ingredient "salt" ;
+      ], [
+        schema:ingredient "eggs" ;
+      ], [
+        schema:ingredient "milk" ;
+      ], [
+        schema:ingredient "vegetable oil" ;
+      ], [
+        schema:ingredient "vanilla extract" ;
+      ] ;
+      schema:recipeInstructions "1. Preheat the oven to 350°F. 2. In a mixing bowl, combine flour, sugar, cocoa powder, baking powder, baking soda, and salt. 3. In another bowl, whisk together eggs, milk, vegetable oil, and vanilla extract. 4. Gradually add the wet ingredients to the dry ingredients and mix until well combined. 5. Pour the batter into a greased cake pan. 6. Bake for 30-35 minutes or until a toothpick inserted into the center comes out clean. 7. Let the cake cool before frosting or serving." .
+
+    ex:soupRecipe a schema:Recipe ;
+      schema:name "Soup Recipe" ;
+      schema:description "A comforting and hearty soup packed with vegetables and flavors" ;
+      schema:recipeIngredient [
+        schema:ingredient "onion" ;
+      ], [
+        schema:ingredient "carrots" ;
+      ], [
+        schema:ingredient "celery" ;
+      ], [
+        schema:ingredient "garlic" ;
+      ], [
+        schema:ingredient "potatoes" ;
+      ], [
+        schema:ingredient "tomatoes" ;
+      ], [
+        schema:ingredient "vegetable broth" ;
+      ], [
+        schema:ingredient "herbs" ;
+      ], [
+        schema:ingredient "salt" ;
+      ], [
+        schema:ingredient "pepper" ;
+      ] ;
+      schema:recipeInstructions "1. Heat olive oil in a large pot and sauté onion, carrots, celery, and garlic until softened. 2. Add potatoes, tomatoes, vegetable broth, herbs, salt, and pepper. 3. Bring to a boil, then reduce heat and simmer for about 20 minutes or until vegetables are tender. 4. Use an immersion blender to blend the soup until smooth, or leave it chunky if desired. 5. Adjust seasoning to taste. 6. Serve hot with crusty bread." .
+}
+
+<http://example.org/jun/pets> {
+  ex:jun schema:owns [
+    a schema:Pet ;
+    schema:name "Fluffy" ;
+    schema:animalType "Cat" ;
+    schema:medicalHistory "Fluffy had a minor surgery last year." ;
+  ], [
+    a schema:Pet ;
+    schema:name "Buddy" ;
+    schema:animalType "Dog" ;
+    schema:medicalHistory "Buddy is up to date on vaccinations." ;
+  ] .
+}
+
+<http://example.org/jun/house> {
+  ex:jun schema:owns [
+    a schema:House ;
+    schema:address "123 Main Street" ;
+    schema:bedrooms 3 ;
+    schema:bathrooms 2 ;
+    schema:yearBuilt 2005 ;
+  ] .
+}
+
+<http://example.org/jun/car> {
+  ex:jun schema:owns [
+    a schema:Car ;
+    schema:manufacturer "Toyota" ;
+    schema:model "Camry" ;
+    schema:yearBuilt 2018 ;
+    schema:color "Silver" ;
+  ] .
+}
+
+<http://example.org/jun/familyMedicalHistory> {
+  ex:jun schema:hasFamilyMember [
+    a schema:Person ;
+    schema:name "John" ;
+    schema:medicalCondition "Diabetes" ;
+  ], [
+    a schema:Person ;
+    schema:name "Mary" ;
+    schema:medicalCondition "High Blood Pressure" ;
+  ], [
+    a schema:Person ;
+    schema:name "Sarah" ;
+    schema:medicalCondition "Asthma" ;
+  ] .
+}

@@ -1,0 +1,149 @@
+@prefix schema: <http://schema.org/> .
+@prefix ex: <http://example.org/> .
+@prefix acp: <http://www.w3.org/ns/auth/acl#> .
+
+ex:nigel belief:believes ex:jun .
+
+[]
+  acp:grant acl:Read, acl:Write ;  
+  acp:context [
+    acp:agent ex:jun ;
+    acp:target <http://example.org/nigel/events> ;
+  ] .
+
+<http://example.org/nigel/events> {
+  ex:nigel a schema:Person ;
+    schema:name "Nigel" ;
+    schema:hasOccupation [
+      a schema:Occupation ;
+      schema:name "Researcher"
+    ] ;
+    schema:hasSchedule [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-20T08:30" ;
+      schema:endTime "2024-03-20T12:00" ;
+      schema:description "Conduct experiments in the laboratory"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-20T13:00" ;
+      schema:endTime "2024-03-20T14:30" ;
+      schema:description "Lunch meeting with research collaborators"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-20T15:00" ;
+      schema:endTime "2024-03-20T17:00" ;
+      schema:description "Analyze experimental data"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-21T09:00" ;
+      schema:endTime "2024-03-21T11:00" ;
+      schema:description "Attend research seminar"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-21T13:00" ;
+      schema:endTime "2024-03-21T15:00" ;
+      schema:description "Meet with research supervisor"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-21T16:00" ;
+      schema:endTime "2024-03-21T18:00" ;
+      schema:description "Write research paper"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-22T09:00" ;
+      schema:endTime "2024-03-22T12:00" ;
+      schema:description "Attend conference call with international collaborators"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-22T14:00" ;
+      schema:endTime "2024-03-22T16:00" ;
+      schema:description "Prepare grant proposal"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-23T10:00" ;
+      schema:endTime "2024-03-23T11:30" ;
+      schema:description "Present research findings to the department"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-23T13:00" ;
+      schema:endTime "2024-03-23T15:00" ;
+      schema:description "Attend committee meeting"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-23T16:00" ;
+      schema:endTime "2024-03-23T18:00" ;
+      schema:description "Review and provide feedback on colleague's research paper"
+    ], [
+      a schema:ScheduleAction ;
+      schema:startTime "2024-03-24T09:00" ;
+      schema:endTime "2024-03-24T12:00" ;
+      schema:description "Conduct literature review for new research project"
+    ] .
+}
+
+<http://example.org/nigel/favourites> {
+  ex:nigel schema:favoriteRecipe [
+    a schema:Recipe ;
+    schema:name "Chicken Parmesan" ;
+    schema:description "A delicious Italian chicken dish"
+  ] ;
+  schema:owns [
+    a schema:Product ;
+    schema:name "Gibson Les Paul Guitar"
+  ] ;
+  schema:owns [
+    a schema:Product ;
+    schema:name "Fender Stratocaster Guitar"
+  ] ;
+}
+
+<http://example.org/nigel/pets> {
+  ex:nigel schema:owns [
+    a schema:Animal ;
+    schema:name "Whiskers" ;
+    schema:petType "Cat" ;
+    schema:medicalHistory "Whiskers is a healthy and active cat"
+  ] , [
+    a schema:Animal ;
+    schema:name "Buddy" ;
+    schema:petType "Dog" ;
+    schema:medicalHistory "Buddy had a minor injury last year"
+  ] .
+}
+
+<http://example.org/nigel/house> {
+  ex:nigel schema:owns [
+    a schema:Place ;
+    schema:name "Nigel's Mansion" ;
+    schema:address "456 Park Ave, Cityville, USA"
+  ] ;
+}
+
+<http://example.org/nigel/car> {
+  ex:nigel schema:owns [
+    a schema:Product ;
+    schema:name "Mercedes-Benz S-Class"
+  ] ;
+}
+
+<http://example.org/nigel/family-medical-history> {
+  ex:nigel schema:hasFamilyMember [
+    a schema:Person ;
+    schema:name "Michael" ;
+    schema:medicalHistory "Michael has a history of allergies"
+  ] , [
+    a schema:Person ;
+    schema:name "Emily" ;
+    schema:medicalHistory "Emily has a history of asthma"
+  ] .
+}
+
+<http://example.org/nigel/instruments> {
+  ex:nigel schema:owns [
+    a schema:Product ;
+    schema:name "Steinway & Sons Grand Piano"
+  ] , [
+    a schema:Product ;
+    schema:name "Fender Stratocaster Guitar"
+  ] .
+}
