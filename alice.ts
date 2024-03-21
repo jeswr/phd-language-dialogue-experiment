@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import express from 'express';
 import rdfHandler from '@rdfjs/express-handler'
 import { Store, DataFactory, Writer } from 'n3';
-import { postDataset } from './datasetFetch.js';
+import { postDataset } from './utils/datasetFetch.js';
 import dereference, { type IDereferenceOptions } from 'rdf-dereference';
 import { promisifyEventEmitter } from 'event-emitter-promisify';
 import * as path from 'path';
