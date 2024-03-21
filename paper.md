@@ -15,3 +15,38 @@ We consider [x] use cases to demonstrate
 
 Data Packaging:
 <!-- Perhaps we can get Ruben D. to write this bit? -->
+
+Design Considerations:
+ - Questions should be placed in the data as the question itself can contain context that should be considered priviledged information.
+
+
+(Protocol) Design Choices:
+ - As a first pass we make use of ACP
+ - For evaluating belief/trust the trust model *does not* need to be broadcast. The primary reason for broadcasting this information is
+   in order to enable other agents / entites within an ecosystem to 
+
+
+A basic trust ontology:
+ - Whilst much more complex models such as the reference ontology of trust exist. We use the following model for describing belief in our initial architecture.
+
+```ttl
+@prefix belief: <http://example.org/trust/>
+
+belief:believes a rdf:Property ;
+    rdf:label "Believes" ;
+    rdf:description "Used to indicate that an agent unconditionally believes data originating from a prescribed location" .
+```
+
+On the json schemas discussion; it might be interesting to see if we can convince the guy talking about that to, instead of using schemas,
+to instead do research on "compresssing" as much language as possible to RDF and then have the rest represented in natural language.
+
+
+(Human) Agent Design notes:
+ - Because it has context of the task that is being worked on. The agent should be able to establish
+ the priority and urgency of tasks. For low urgency tasks it should be able to allow a user to bulk
+ action them (if that is how the user likes to work).
+
+
+Future Work:
+Demonstrating that data & rules are the same thing. For instance:
+ - 

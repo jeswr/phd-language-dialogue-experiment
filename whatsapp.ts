@@ -26,7 +26,8 @@ alice.get('/', async (req, res) => {
     res.status(200).send('Hello from Alice');
 });
 
-alice.listen(1701, '0.0.0.0', () => {
+// to expose it to the world, this becomes alice.listen(1701, '0.0.0.0', () => {
+alice.listen(1701, () => {
     console.log('Alice is listening on port 1701');
 });
 // http://10.0.129.224:1701/human

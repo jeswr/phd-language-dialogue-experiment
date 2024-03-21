@@ -21,6 +21,7 @@ async function dereferenceToStore(file: string) {
     return promisifyEventEmitter(store.import((await deref(file, { localFiles: true })).data), store);
 }
 
+// Future work: make use of tooling that exposes composed tooling via a universal API
 const anthropic = new Anthropic();
 const alice = express();
 const bob = express();
