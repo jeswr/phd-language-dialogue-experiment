@@ -25,7 +25,6 @@ Design Considerations:
  - For evaluating belief/trust the trust model *does not* need to be broadcast. The primary reason for broadcasting this information is
    in order to enable other agents / entites within an ecosystem to 
 
-
 A basic trust ontology:
  - Whilst much more complex models such as the reference ontology of trust exist. We use the following model for describing belief in our initial architecture.
 
@@ -40,6 +39,9 @@ belief:believes a rdf:Property ;
 On the json schemas discussion; it might be interesting to see if we can convince the guy talking about that to, instead of using schemas,
 to instead do research on "compresssing" as much language as possible to RDF and then have the rest represented in natural language.
 
+(HTTP) Design notes:
+ - For now we are expecting most key components of our infrastrucutre to have their own server, and
+ we are negotiating between these components via `POST` requests.
 
 (Human) Agent Design notes:
  - Because it has context of the task that is being worked on. The agent should be able to establish

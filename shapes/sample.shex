@@ -1,0 +1,16 @@
+
+PREFIX school: <http://school.example/#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX ex: <http://ex.example/#>
+PREFIX my: <http://ex.example/my/#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+my:IssueShape {
+  ex:state [ex:unassigned ex:assigned];
+ ^ex:reportedIssue @my:UserShape
+}
+
+my:UserShape {
+  foaf:name LITERAL;
+  foaf:mbox IRI+
+}
