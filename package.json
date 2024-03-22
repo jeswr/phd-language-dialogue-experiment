@@ -9,7 +9,11 @@
     "serve": "npm run build && node dist/alice.js",
     "interface:cli": "npm run build && node dist/humanInterfaces/cli.js",
     "build": "tsc",
-    "shapes": "ldo build --input ./shapes --output ./ldo"
+    "ldo": "ldo build --input ./shapes --output ./ldo",
+    "shacl2shex": "bash conversions/shacl2shex/convert.sh ./shapes",
+    "shc2ttl": "node ./conversions/shaclc2ttl.js",
+    "shc2shex": "npm run shc2ttl && npm run shacl2shex",
+    "shapes": "npm run shc2shex && npm run ldo && rm -rf ./shapes/*.ttl && rm -rf ./shapes/*.shex"
   },
   "author": "",
   "license": "ISC",
@@ -26,8 +30,10 @@
     "express": "^4.18.3",
     "n3": "^1.17.2",
     "rdf-dereference": "^2.2.0",
+    "rdf-transform": "^1.2.0",
     "readline": "^1.3.0",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "shaclc-parse": "^1.4.0"
   },
   "devDependencies": {
     "@ldo/cli": "^0.0.1-alpha.23",
