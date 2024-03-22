@@ -1,6 +1,0 @@
-@prefix ex: <http://example.com/ns#> .
-@prefix sh: <http://www.w3.org/ns/shacl#> .
-
-ex:PersonShape
-	a sh:NodeShape ;
-	sh:targetNode ex:Alice .
