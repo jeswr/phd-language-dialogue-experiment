@@ -5,6 +5,7 @@ import express from 'express';
 import rdfHandler from '@rdfjs/express-handler';
 import termSet from '@rdfjs/term-set';
 import { getSubjects } from "../utils";
+import { ClientInterface } from "./clientInterface";
 
 const shapesToHandle = [
     UserShapeShapeType

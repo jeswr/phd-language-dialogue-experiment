@@ -13,7 +13,7 @@
     "shacl2shex": "bash conversions/shacl2shex/convert.sh ./shapes",
     "shc2ttl": "node ./conversions/shaclc2ttl.js",
     "shc2shex": "npm run shc2ttl && npm run shacl2shex",
-    "shapes": "npm run shc2shex && npm run ldo && rm -rf ./shapes/*.ttl && rm -rf ./shapes/*.shex"
+    "shapes": "npm run shc2shex && npm run ldo"
   },
   "author": "",
   "license": "ISC",
