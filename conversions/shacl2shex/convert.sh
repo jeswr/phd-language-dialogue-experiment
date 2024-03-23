@@ -1,4 +1,4 @@
-docker build ./conversions/shacl2shex -t shacl2shex
+docker build ./conversions/shacl2shex -t jeswr/shacl2shex
 docker create --name shacl2shex shacl2shex
 for file in ./shapes/*.ttl; do
     filename=$(basename "$file")

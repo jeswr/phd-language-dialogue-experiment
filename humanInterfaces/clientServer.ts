@@ -1,4 +1,4 @@
-import { UserShapeShapeType } from "../ldo/sample.shapeTypes";
+import { AccessRequestShapeShapeType } from "../ldo/accessRequest.shapeTypes";
 import { createLdoDataset, ShapeType, type LdoDataset } from "@ldo/ldo";
 // ... Get the LdoDataset
 import express from 'express';
@@ -8,7 +8,7 @@ import { getSubjects } from "../utils";
 import { ClientInterface } from "./clientInterface";
 
 const shapesToHandle = [
-    UserShapeShapeType
+    AccessRequestShapeShapeType
 ];
 
 export class ClientServer {
