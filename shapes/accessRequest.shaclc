@@ -1,6 +1,5 @@
 PREFIX ex: <http://example.org/test#>
 
 shape ex:TestShape -> ex:AccessRequest {
-	# This cap at 1000
-	ex:requestedGraphs [0..1] xsd:string .
+	ex:requestedGraphs [1..*] xsd:string .
 }
