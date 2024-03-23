@@ -16,7 +16,7 @@
     "shapes": "npm run shc2shex && npm run ldo"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",
     "@inquirer/prompts": "^4.3.0",
