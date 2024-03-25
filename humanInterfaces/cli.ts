@@ -1,9 +1,10 @@
 import { input, select } from '@inquirer/prompts';
-import { AccessGrantsShape, AccessRequestShape } from '../ldo/accessRequest.typings';
+import { AccessGrantsShape, AccessRequestShape, UserMessage } from '../ldo/accessRequest.typings';
 import { ClientInterface } from './clientInterface';
 import EventEmitter from 'events';
 
-const defaultInput = () => input({ message: "Let me know if there is anything I can do for you." });
+// const defaultInput = () => input({ message: "Let me know if there is anything I can do for you." });
+const defaultInput = () => input({ message: "" });
 
 type CancelablePromise<T> = ReturnType<typeof select<T>>;
 
@@ -13,8 +14,11 @@ export class CliInterface implements ClientInterface {
     private currentAction: CancelablePromise<unknown> | undefined;
     private readonly eventEmitter = new EventEmitter();
 
+    constructor() {
+    }
+
     public async start() {
-        this.input = defaultInput()
+        this.registerInput();
     }
 
     public async stop() {
@@ -35,13 +39,14 @@ export class CliInterface implements ClientInterface {
         }
     }
 
-    private registerInput(expectExistingInput?: boolean) {
-        if (expectExistingInput ? this.input : !expectExistingInput) {
-            throw new Error(`Attempting to register input when one is [${expectExistingInput ? '' : 'not '}]already registered`);
+    private registerInput(expectExistingInput: boolean = false) {
+        if (expectExistingInput ? !this.input : this.input) {
+            throw new Error(`Attempting to register input when one is ${expectExistingInput ? '' : 'not '}already registered`);
         }
         this.input = defaultInput();
         this.input.then(res => {
-            this.eventEmitter.emit('userInitiatedRequest', res)
+            // console.log('✓');
+            this.eventEmitter.emit('userInitiatedRequest', { text: res } as UserMessage)
             this.registerInput(true);
         }).catch(() => {
             /* this means it has been cancelled */
@@ -49,7 +54,7 @@ export class CliInterface implements ClientInterface {
     }
 
     // TODO: Have a proper shape for this
-    public on(event: 'userInitiatedRequest', cb: (req: string) => void): void {
+    public on(event: 'userInitiatedRequest', cb: (req: UserMessage) => void): void {
         this.eventEmitter.on(event, cb);
     }
 
@@ -72,15 +77,6 @@ export class CliInterface implements ClientInterface {
             this.registerInput();
         }
     }
-
-    // private async gen<T extends (...args: any) => CancelablePromise<any>>(fn: T): (...args: Parameters<T>) => Promise<ReturnType<T>> {
-    //     return async (...args: Parameters<T>) => {
-    //         await this.getBaton();
-    //         const answer = await fn(...args);
-    //         this.returnBaton();
-    //         return answer;
-    //     }
-    // }
 
     private async select<T>(...args: Parameters<typeof select<T>>): Promise<ReturnType<typeof select<T>>> {
         await this.getBaton();

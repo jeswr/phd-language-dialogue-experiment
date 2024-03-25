@@ -1,6 +1,7 @@
 PREFIX ex: <http://example.org/test#>
 PREFIX acl: <http://www.w3.org/ns/auth/acl#>
 PREFIX acp: <http://www.w3.org/ns/solid/acp#>
+PREFIX schema: <http://schema.org/>
 
 shape ex:AccessRequestShape -> ex:AccessRequest {
 	ex:requestor IRI [1..1] .
@@ -26,4 +27,8 @@ shape ex:AccessGrantsShape -> ex:AccessGrant {
 shape ex:AccessFlow {
 	ex:request [1..1] @ex:AccessRequestShape .
 	ex:response [1..1] @ex:AccessGrantsShape .
+}
+
+shape ex:UserMessage {
+	schema:text [1..1] xsd:string .
 }

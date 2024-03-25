@@ -1,7 +1,7 @@
 import { ClientServer } from './clientServer';
 import { CliInterface } from './cli';
 import { Command } from 'commander';
-import { option } from 'rdf-namespaces/dist/fhir';
+
 const program = new Command();
 
 const interfaceMappings = {
@@ -9,10 +9,10 @@ const interfaceMappings = {
 } as const
 
 program
-  .option('-d, --debug', 'output extra debugging')
-  .option('-s, --server', 'The URL of the main agent server', 'http://localhost:3000/')
-  .option('-p, --port', 'The port of the interface server', '3001')
-  .option('-i, --interface', `The type if interface to spin up. Options: [${Object.keys(interfaceMappings)}]`, Object.keys(interfaceMappings)[0]);
+    .option('-d, --debug', 'output extra debugging')
+    .option('-s, --server', 'The URL of the main agent server', 'http://localhost:3000/')
+    .option('-p, --port', 'The port of the interface server', '3001')
+    .option('-i, --interface', `The type if interface to spin up. Options: [${Object.keys(interfaceMappings)}]`, Object.keys(interfaceMappings)[0]);
 
 program.parse(process.argv);
 
@@ -38,4 +38,4 @@ const server = new ClientServer(
     agentServerUrl
 )
 
-
+server.start();

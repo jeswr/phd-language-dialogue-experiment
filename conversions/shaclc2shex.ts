@@ -4,6 +4,7 @@ import { DataFactory, Store } from "n3";
 import * as path from 'path';
 import { rdf } from "rdf-namespaces";
 import { parse } from 'shaclc-parse';
+import { Schema } from "shexj";
 const { namedNode, literal, defaultGraph, quad } = DataFactory;
 
 const shapesDir = './shapes';
@@ -40,7 +41,7 @@ shaclcFiles.forEach(async file => {
                 throw new Error('Unsupported path');
             }
 
-            let valueExpr = {
+            let valueExpr: string | Record<string, string | string[]> = {
               "type": "NodeConstraint",
             }
 
@@ -92,12 +93,12 @@ shaclcFiles.forEach(async file => {
     fs.writeFileSync(shexPath, promise);
 });
 
-function writeShexSchema(schema, prefixes) {
-    const shexWriter = new Writer({ prefixes });
-    return new Promise((resolve, reject) => {
+function writeShexSchema(schema: any, prefixes: Record<string, string>) {
+    const shexWriter = new Writer({ prefixes }, {});
+    return new Promise<string>((resolve, reject) => {
         shexWriter.writeSchema(
             schema,
-            (error, text) => {
+            (error: any, text: string) => {
                 if (error)
                     reject(error);
                 else if (text !== undefined)

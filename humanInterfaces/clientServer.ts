@@ -3,7 +3,7 @@ import rdfHandler from '@rdfjs/express-handler';
 import termSet from '@rdfjs/term-set';
 import { BlankNode, NamedNode } from "@rdfjs/types";
 import express from 'express';
-import { AccessRequestShapeShapeType, AccessGrantsShapeShapeType } from "../ldo/accessRequest.shapeTypes";
+import { AccessRequestShapeShapeType, AccessGrantsShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
 import { getSubjects, postDataset } from "../utils";
 import { ClientInterface } from "./clientInterface";
 
@@ -11,7 +11,13 @@ export class ClientServer {
     private readonly app: express.Express;
     private _server: ReturnType<typeof this.app.listen> | undefined = undefined;
 
-    constructor(private readonly port: number = 3000, private readonly client: ClientInterface, private readonly server: string = 'http://localhost:3001/') {
+    constructor(
+        private readonly port: number = 3000,
+        private readonly client: ClientInterface,
+        private readonly server: string = 'http://localhost:3001/',
+        // Should this be made available here?
+        private readonly agentId: string = 'http://example.org/agent/1'
+    ) {
         this.app = express();
         this.app.use(rdfHandler());
 
@@ -42,7 +48,16 @@ export class ClientServer {
     }
 
     async start() {
+        this.client.on('userInitiatedRequest', (msg) => {
+            const userMessageShape = createLdoDataset([]).usingType(UserMessageShapeType);
+            console.log(msg)
+            const dataset = getDataset(userMessageShape.fromJson(msg));
+            console.log('Posting user message', ...dataset);
+            // postDataset(this.server, dataset);
+        });
+
         await this.client.start();
+
         this._server = this.app.listen(this.port);
     }
 
