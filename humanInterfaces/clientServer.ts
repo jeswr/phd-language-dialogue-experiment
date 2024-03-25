@@ -9,6 +9,7 @@ import { ClientInterface } from "./clientInterface";
 
 export class ClientServer {
     private readonly app: express.Express;
+    private _server: ReturnType<typeof this.app.listen> | undefined = undefined;
 
     constructor(private readonly port: number = 3000, private readonly client: ClientInterface, private readonly server: string = 'http://localhost:3001/') {
         this.app = express();
@@ -40,10 +41,17 @@ export class ClientServer {
         });
     }
 
-    start() {
-        return this.app.listen(this.port);
+    async start() {
+        await this.client.start();
+        this._server = this.app.listen(this.port);
+    }
+
+    async stop() {
+        this._server?.close();
+        await this.client.stop();
     }
 }
+
 function* matches<T extends LdoBase>(subjects: termSet<NamedNode<string> | BlankNode>, shapeBuilder: LdoBuilder<T>) {
     for (const subject of subjects) {
         try {

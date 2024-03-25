@@ -1,14 +1,57 @@
-import { input, confirm, rawlist, select } from '@inquirer/prompts';
-import express from 'express';
-import rdfHandler from '@rdfjs/express-handler'
+import { input, select } from '@inquirer/prompts';
+import { AccessGrantsShape, AccessRequestShape } from '../ldo/accessRequest.typings';
 import { ClientInterface } from './clientInterface';
-import { AccessRequestShape, AccessGrantsShape } from '../ldo/accessRequest.typings';
+import EventEmitter from 'events';
 
-const defaultInput = () => input({ message: "What can I do for you?" });
+const defaultInput = () => input({ message: "Let me know if there is anything I can do for you." });
+
+type CancelablePromise<T> = ReturnType<typeof select<T>>;
 
 export class CliInterface implements ClientInterface {
-    private actions: (() => void)[] = [];
-    private input: ReturnType<typeof input> | undefined = defaultInput();
+    private actions: [(() => void), (() => void)][] = [];
+    private input: ReturnType<typeof input> | undefined;
+    private currentAction: CancelablePromise<unknown> | undefined;
+    private readonly eventEmitter = new EventEmitter();
+
+    public async start() {
+        this.input = defaultInput()
+    }
+
+    public async stop() {
+        // Reject all queued actions
+        let action = this.actions.shift();
+        while (action) {
+            action[1]();
+            action = this.actions.shift();
+        }
+        
+        if (this.input) {
+            this.input.cancel();
+            this.input = undefined;
+        }
+        if (this.currentAction) {
+            this.currentAction.cancel();
+            this.currentAction = undefined;
+        }
+    }
+
+    private registerInput(expectExistingInput?: boolean) {
+        if (expectExistingInput ? this.input : !expectExistingInput) {
+            throw new Error(`Attempting to register input when one is [${expectExistingInput ? '' : 'not '}]already registered`);
+        }
+        this.input = defaultInput();
+        this.input.then(res => {
+            this.eventEmitter.emit('userInitiatedRequest', res)
+            this.registerInput(true);
+        }).catch(() => {
+            /* this means it has been cancelled */
+        })
+    }
+
+    // TODO: Have a proper shape for this
+    public on(event: 'userInitiatedRequest', cb: (req: string) => void): void {
+        this.eventEmitter.on(event, cb);
+    }
 
     private async getBaton() {
         if (this.input) {
@@ -16,30 +59,40 @@ export class CliInterface implements ClientInterface {
             this.input = undefined;
             return;
         }
-        return new Promise<void>((resolve) => {
-            this.actions.push(resolve);
+        return new Promise<void>((resolve, reject) => {
+            this.actions.push([resolve, reject]);
         });
     }
 
     private returnBaton() {
         const action = this.actions.shift();
         if (action) {
-            action();
+            action[0]();
         } else {
-            this.input = defaultInput();
+            this.registerInput();
         }
     }
 
-    private async select<T>(questions: Parameters<typeof select<T>>[0]): Promise<ReturnType<typeof select<T>>> {
+    // private async gen<T extends (...args: any) => CancelablePromise<any>>(fn: T): (...args: Parameters<T>) => Promise<ReturnType<T>> {
+    //     return async (...args: Parameters<T>) => {
+    //         await this.getBaton();
+    //         const answer = await fn(...args);
+    //         this.returnBaton();
+    //         return answer;
+    //     }
+    // }
+
+    private async select<T>(...args: Parameters<typeof select<T>>): Promise<ReturnType<typeof select<T>>> {
         await this.getBaton();
-        const answer = await select(questions);
+        this.currentAction = select(...args);
+        const answer = await (this.currentAction as CancelablePromise<T>);
         this.returnBaton();
         return answer;
     }
 
     async accessFlow(req: AccessRequestShape): Promise<AccessGrantsShape> {
         const permissions = await this.select({
-            message: `In order to proceed do you agree to provide [${req.requestor['@id']}] with access to [${req.requestedGraphs.join(', ')}] for the purpose of [${req.purposeDescription}]`,
+            message: `In order to [${req.purposeDescription}] do you consent to provide [${req.requestor['@id']}] with access to [${req.requestedGraphs.join(', ')}]`,
             choices: [
                 {
                     value: "ReadOnce",
