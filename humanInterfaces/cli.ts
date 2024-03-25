@@ -1,19 +1,93 @@
-import { input, confirm } from '@inquirer/prompts';
+import { input, confirm, rawlist, select } from '@inquirer/prompts';
 import express from 'express';
 import rdfHandler from '@rdfjs/express-handler'
-
-
-
-const app = express();
-app.use(rdfHandler());
+import { ClientInterface } from './clientInterface';
+import { AccessRequestShape, AccessGrantsShape } from '../ldo/accessRequest.typings';
 
 const defaultInput = () => input({ message: "What can I do for you?" });
 
-async function main() {
-    const ip = await input({ message: "What can I do for you?" });
+export class CliInterface implements ClientInterface {
+    private actions: (() => void)[] = [];
+    private input: ReturnType<typeof input> | undefined = defaultInput();
+
+    private async getBaton() {
+        if (this.input) {
+            this.input.cancel();
+            this.input = undefined;
+            return;
+        }
+        return new Promise<void>((resolve) => {
+            this.actions.push(resolve);
+        });
+    }
+
+    private returnBaton() {
+        const action = this.actions.shift();
+        if (action) {
+            action();
+        } else {
+            this.input = defaultInput();
+        }
+    }
+
+    private async select<T>(questions: Parameters<typeof select<T>>[0]): Promise<ReturnType<typeof select<T>>> {
+        await this.getBaton();
+        const answer = await select(questions);
+        this.returnBaton();
+        return answer;
+    }
+
+    async accessFlow(req: AccessRequestShape): Promise<AccessGrantsShape> {
+        const permissions = await this.select({
+            message: `In order to proceed do you agree to provide [${req.requestor['@id']}] with access to [${req.requestedGraphs.join(', ')}] for the purpose of [${req.purposeDescription}]`,
+            choices: [
+                {
+                    value: "ReadOnce",
+                    name: "Once",
+                    description: "Provide access to the data this time only",
+                },
+                {
+                    value: "Read",
+                    name: "Always",
+                    description: "Provide access to the data indefinitely",
+                },
+                {
+                    value: "No",
+                    name: "Do not provide access to the data",
+                },
+            ],
+        });
+
+        if (permissions === "ReadOnce" || permissions === "Read") {
+            return {
+                grants: [
+                    {
+                        grantedGraphs: req.requestedGraphs,
+                        modes: [
+                            {
+                                "@id": permissions,
+                            },
+                        ],
+                    },
+                ],
+            };
+        }
+
+        return {
+            grants: [],
+        };
+    }
 }
 
-main();
+// const app = express();
+// app.use(rdfHandler());
+
+
+// async function main() {
+//     const ip = await input({ message: "What can I do for you?" });
+// }
+
+// main();
 
 
 
@@ -129,18 +203,18 @@ main();
     //     message: "How can I help you today?",
     // }]);
 
-//     const permissions = await inquirer.prompt([{
-//         // FIXME: This should just be the predicate that we are using
-//         name: "permissions",
-//         type: "list",
-//         message: "In order to proceed do you agree to provide {} with access to {}",
-//         choices: [
-//             "One time only",
-//             "Indefinitely (I will provide access to all future requests without asking beforehand)",
-//             "Not this time",
-//             "Never (I won't ask you again)",
-//         ],
-//     }]);
+    // const permissions = await inquirer.prompt([{
+    //     // FIXME: This should just be the predicate that we are using
+    //     name: "permissions",
+    //     type: "list",
+    //     message: "In order to proceed do you agree to provide {} with access to {}",
+    //     choices: [
+    //         "One time only",
+    //         "Indefinitely (I will provide access to all future requests without asking beforehand)",
+    //         "Not this time",
+    //         "Never (I won't ask you again)",
+    //     ],
+    // }]);
 
 //     console.log(answer, permissions);
 // }

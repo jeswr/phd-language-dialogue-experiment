@@ -3,14 +3,14 @@ import rdfHandler from '@rdfjs/express-handler';
 import termSet from '@rdfjs/term-set';
 import { BlankNode, NamedNode } from "@rdfjs/types";
 import express from 'express';
-import { AccessFlowShapeType, AccessRequestShapeShapeType, AccessGrantsShapeShapeType } from "../ldo/accessRequest.shapeTypes";
+import { AccessRequestShapeShapeType, AccessGrantsShapeShapeType } from "../ldo/accessRequest.shapeTypes";
 import { getSubjects, postDataset } from "../utils";
 import { ClientInterface } from "./clientInterface";
 
 export class ClientServer {
     private readonly app: express.Express;
 
-    constructor(private readonly port: number = 3000, private readonly client: ClientInterface) {
+    constructor(private readonly port: number = 3000, private readonly client: ClientInterface, private readonly server: string = 'http://localhost:3001/') {
         this.app = express();
         this.app.use(rdfHandler());
 
@@ -31,7 +31,7 @@ export class ClientServer {
                 this.client.accessFlow(data)
                     .then((response) => {
                         const dataset = getDataset(accessGrantShape.fromJson(response));
-                        postDataset('', dataset);
+                        postDataset(this.server, dataset);
                     })
                     .catch(console.error);
             }
