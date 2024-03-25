@@ -1,5 +1,29 @@
 PREFIX ex: <http://example.org/test#>
+PREFIX acl: <http://www.w3.org/ns/auth/acl#>
+PREFIX acp: <http://www.w3.org/ns/solid/acp#>
 
 shape ex:AccessRequestShape -> ex:AccessRequest {
+	ex:requestor IRI [1..1] .
 	ex:requestedGraphs [1..*] xsd:string .
+	# TODO: Add information of the specific operation
+	# in particular, agreed upon IRI terms of use
+	ex:purposeDescription [1..1] xsd:string .
+}
+
+shape ex:AccessGrantShape -> ex:AccessGrant {
+	ex:grantedGraphs [1..*] xsd:string .
+	# FIXME: acl:ReadOnce is a custom term
+	ex:modes [1..*] in=[acl:ReadOnce acl:Read acl:Write] .
+}
+
+shape ex:AccessGrantsShape -> ex:AccessGrant {
+	ex:grants [1..*] @ex:AccessGrantShape .
+}
+
+# FIXME: Long term we should be doing mostly codegen from this
+# but for now we need to manually define this relationship in
+# the TS code
+shape ex:AccessFlow {
+	ex:request [1..1] @ex:AccessRequestShape .
+	ex:response [1..1] @ex:AccessGrantsShape .
 }

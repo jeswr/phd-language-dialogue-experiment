@@ -1,12 +1,9 @@
-import { parse } from 'shaclc-parse';
-import { write } from '@jeswr/pretty-turtle';
 import Writer from "@shexjs/writer";
-import def from "@shexjs/parser";
-import { Store, DataFactory } from "n3";
-import { rdf } from "rdf-namespaces";
-import { stringToTerm, termToString } from "rdf-string-ttl"
 import * as fs from 'fs';
+import { DataFactory, Store } from "n3";
 import * as path from 'path';
+import { rdf } from "rdf-namespaces";
+import { parse } from 'shaclc-parse';
 const { namedNode, literal, defaultGraph, quad } = DataFactory;
 
 const shapesDir = './shapes';
@@ -17,7 +14,7 @@ const shaclcFiles = fs.readdirSync(shapesDir).filter(file => path.extname(file) 
 // Convert each .shaclc file to .ttl
 shaclcFiles.forEach(async file => {
     const shaclcPath = path.join(shapesDir, file);
-    const ttlPath = path.join(shapesDir, `${path.basename(file, '.shaclc')}.ttl`);
+    const shexPath = path.join(shapesDir, `${path.basename(file, '.shaclc')}.shex`);
     const shapes = parse(fs.readFileSync(shaclcPath, 'utf8'));
     
     // Hacky SHACL -> SHEX
@@ -54,7 +51,6 @@ shaclcFiles.forEach(async file => {
               valueExpr.nodeKind = nodeKind[0].value.split('#')[1].toLowerCase();
             }
             if (inValues.length === 1) {
-              console.log('inValues', inValues, shapeStore.extractLists())
               const list = shapeStore.extractLists()[inValues[0].value];
               if (list) {
                 // FIXME, make this work for literals
@@ -65,12 +61,6 @@ shaclcFiles.forEach(async file => {
               // TODO: Error if there are any other constraints
               valueExpr = shapeRef[0].value;
             }
-            // if (pattern.length === 1) {
-            //   valueExpr.pattern = pattern[0].value;
-            // }
-            // if (minLength.length === 1) {
-            //   valueExpr.minLength = minLength[0].value;
-            // }
 
             eachOf.push({
               "type": "TripleConstraint",
@@ -81,65 +71,25 @@ shaclcFiles.forEach(async file => {
               "max": maxCount[0]?.value ?? -1
             })
         }
-        if (false) {
-          shexShapes.push({
-            "id": shape.value,
-            "type": "ShapeDecl",
-            "shapeExpr": eachOf[0]
-          })
-        } else {
-          shexShapes.push({
-            "id": shape.value,
-            "type": "ShapeDecl",
-            "shapeExpr": {
-              "type": "Shape",
-              "expression": {
-                "type": "EachOf",
-                "expressions": eachOf
-              }
+        shexShapes.push({
+          "id": shape.value,
+          "type": "ShapeDecl",
+          "shapeExpr": {
+            "type": "Shape",
+            "expression": {
+              "type": "EachOf",
+              "expressions": eachOf
             }
-          })
-        }
-        
+          }
+        })
     }
 
-    // const ttl = shexWriter.write(shapes);
-    // console.log(shapes.prefixes)
+    const promise = await writeShexSchema({
+      "type": "Schema",
+      "shapes": shexShapes
+    }, shapes.prefixes)
 
-    // const ttl = await write(shapes, { prefixes: shapes.prefixes });
-    // fs.writeFileSync(ttlPath, ttl);
-
-//     console.log(def)
-
-//     const parser = def.construct()
-
-//     console.log(JSON.stringify(parser.parse(`
-//     prefix xsd: <http://www.w3.org/2001/XMLSchema#>
-// prefix ex: <http://example.org/test#>
-// prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-// prefix sh: <http://www.w3.org/ns/shacl#>
-// ex:AccessGrantShape  {
-// ex:grantedGraphs [ex:unassigned ex:assigned];
-// ex:grantedGraphs2 @ex:MyShapeRef
-// }
-
-//      `), null, 2))
-
-    console.log(JSON.stringify(shexShapes, null, 2))
-
-    const shexWriter = new Writer({ prefixes: shapes.prefixes });
-
-    shexWriter.writeSchema(
-        {
-            "type": "Schema",
-            "shapes": shexShapes
-          },
-          (error, text, prefixes) => {
-            if (error)
-              throw error;
-            console.log(text);
-          }
-    )
+    fs.writeFileSync(shexPath, promise);
 });
 
 function writeShexSchema(schema, prefixes) {
@@ -147,10 +97,11 @@ function writeShexSchema(schema, prefixes) {
     return new Promise((resolve, reject) => {
         shexWriter.writeSchema(
             schema,
-            (error, text, prefixes) => {
+            (error, text) => {
                 if (error)
                     reject(error);
-                resolve(text);
+                else if (text !== undefined)
+                  resolve(text);
             }
         )
     });

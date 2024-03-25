@@ -1,15 +1,11 @@
-import { AccessRequestShapeShapeType } from "../ldo/accessRequest.shapeTypes";
-import { createLdoDataset, ShapeType, type LdoDataset } from "@ldo/ldo";
-// ... Get the LdoDataset
-import express from 'express';
+import { LdoBase, LdoBuilder, createLdoDataset, getDataset } from "@ldo/ldo";
 import rdfHandler from '@rdfjs/express-handler';
 import termSet from '@rdfjs/term-set';
-import { getSubjects } from "../utils";
+import { BlankNode, NamedNode } from "@rdfjs/types";
+import express from 'express';
+import { AccessFlowShapeType, AccessRequestShapeShapeType, AccessGrantsShapeShapeType } from "../ldo/accessRequest.shapeTypes";
+import { getSubjects, postDataset } from "../utils";
 import { ClientInterface } from "./clientInterface";
-
-const shapesToHandle = [
-    AccessRequestShapeShapeType
-];
 
 export class ClientServer {
     private readonly app: express.Express;
@@ -27,17 +23,17 @@ export class ClientServer {
 
             const ldoDataset = createLdoDataset([...dataset]);
             const subjects = getSubjects(ldoDataset);
-            for (const shape of shapesToHandle) {
-                const shapeBuilder = ldoDataset.usingType(shape);
-                for (const subject of subjects) {
-                    if (subject.termType === 'NamedNode' || subject.termType === 'BlankNode') {
-                        try {
-                            const data = shapeBuilder.fromSubject(subject);
-                        } catch (e) {
-                            // Do nothing, not all subjects will match every shape
-                        }
-                    }
-                }
+            
+            // FIXME: Generalise this
+            const accessRequestShape = ldoDataset.usingType(AccessRequestShapeShapeType);
+            const accessGrantShape = ldoDataset.usingType(AccessGrantsShapeShapeType);
+            for (const data of matches(subjects, accessRequestShape)) {
+                this.client.accessFlow(data)
+                    .then((response) => {
+                        const dataset = getDataset(accessGrantShape.fromJson(response));
+                        postDataset('', dataset);
+                    })
+                    .catch(console.error);
             }
 
             return res.status(200).send('Dataset received');
@@ -46,5 +42,14 @@ export class ClientServer {
 
     start() {
         return this.app.listen(this.port);
+    }
+}
+function* matches<T extends LdoBase>(subjects: termSet<NamedNode<string> | BlankNode>, shapeBuilder: LdoBuilder<T>) {
+    for (const subject of subjects) {
+        try {
+            yield shapeBuilder.fromSubject(subject);
+        } catch (e) {
+            // Do nothing, not all subjects will match every shape
+        }
     }
 }

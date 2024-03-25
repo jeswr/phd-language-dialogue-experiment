@@ -1,3 +1,5 @@
+import { AccessFlow } from "../ldo/accessRequest.typings";
+
 export interface ClientInterface {
-    readRequest(namedGraphs: string[]): Promise<'always'| 'yes' | 'no' | 'never'>;
+    accessFlow(req: AccessFlow['request']): Promise<AccessFlow['response']>;
 }
