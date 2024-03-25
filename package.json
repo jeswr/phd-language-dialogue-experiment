@@ -14,7 +14,10 @@
     "shapes": "ts-node ./conversions/shaclc2shex && npm run ldo && rm -rf ./shapes/*.ttl && rm -rf ./shapes/*.shex",
     "watch:shapes": "nodemon --watch shapes/*.shaclc -x \"npm run shapes\"",
     "watch:tsc": "tsc --watch",
-    "watch": "run-p watch:*"
+    "watch": "run-p watch:*",
+    "serve:webIds:nigel": "rdf-serve sampleData/webIds/jun -p 3002",
+    "serve:webIds:jun": "rdf-serve sampleData/webIds/nigel -p 3003",
+    "serve:webIds": "run-p serve:webIds:*"
   },
   "author": "",
   "license": "MIT",
@@ -37,6 +40,7 @@
     "n3": "^1.17.2",
     "rdf-dereference": "^2.2.0",
     "rdf-namespaces": "^1.12.0",
+    "rdf-serve": "^1.1.0",
     "rdf-string-ttl": "^1.3.2",
     "rdf-transform": "^1.2.0",
     "readline": "^1.3.0",
