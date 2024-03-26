@@ -1,54 +1,16 @@
 import Anthropic from '@anthropic-ai/sdk';
 import express from 'express';
 import rdfHandler from '@rdfjs/express-handler'
-import { Store, DataFactory, Writer } from 'n3';
-import { postDataset } from '../utils/postDataset';
+import { DataFactory, Writer } from 'n3';
 import * as path from 'path';
-import { write } from "@jeswr/pretty-turtle";
-const { namedNode, defaultGraph } = DataFactory;
+const { namedNode } = DataFactory;
 import 'dotenv/config';
-import { Command } from 'commander';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
-import { AccessRequestShapeShapeType, AccessGrantsShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
+import { UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
 import { createLdoDataset } from '@ldo/ldo';
 import { getSubjects } from '../utils';
-
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
-
-// const yargs = require('yargs/yargs')
-// const { hideBin } = require('yargs/helpers')
-
-// const res = yargs(hideBin(process.argv))
-//   .command('serve [port]', 'start the server', (yargs) => {
-//     return yargs
-//       .positional('port', {
-//         describe: 'port to bind on',
-//         default: 5000
-//       })
-//   }, (argv) => {
-//     if (argv.verbose) console.info(`start server on :${argv.port}`)
-//     serve(argv.port)
-//   })
-//   .option('verbose', {
-//     alias: 'v',
-//     type: 'boolean',
-//     description: 'Run with verbose logging'
-//   })
-//   .parse()
-// const program = new Command();
-
-// program
-//     .option('-d, --debug', 'output extra debugging')
-//     .option('-s, --server', 'The URL of the interface server <string>', 'http://localhost:3005/')
-//     .option('-w, --webid', 'The webId of the agent this server is representing <string>', "http://localhost:3002/nigel/#me")
-//     .option('-u, --userData', 'A path for the user data <string>', 'sampleData/nigelSchedule.trig')
-//     .option('-p, --port', 'The port of the server <string>');
-
-// program.parse(process.argv.slice(1));
-
-// const options = program.opts();
-
 
 const res = yargs(hideBin(process.argv))
   .options({
@@ -203,37 +165,6 @@ app.post('/', async (req, res) => {
         const webIdDataset = await dereferenceToStore(negotiationWebId);
         const webIdLdoDataset = createLdoDataset([...webIdDataset]);
         console.log('The WebId dataset is:', webIdLdoDataset);
-
-    
-
-        // Work out which user we need to negotiate with
-        // const question = 'Given the following prompt:\n' +
-        // '---\n' +
-        // text + '\n' +
-        // '---\n' +
-        // 'Please return a JSON array contaning exactly the smallest set of named graphs which are required to answer this question.\n' +
-        // 'I want to parse this array directly so please do not include anything else in the response.\n';
-
-        // const { content: [{ text: ngText }] } = await anthropic.messages.create({
-        //     model: 'claude-3-sonnet-20240229',
-        //     max_tokens: 4096,
-        //     temperature: 0,
-        //     messages: [
-        //         {
-        //             role: 'user',
-        //             content:  [
-        //                 {
-        //                     text: question,
-        //                     type: 'text'
-        //                 },
-        //                 {
-        //                     text: await userDataTrig,
-        //                     type: 'text'
-        //                 }
-        //             ]
-        //         }
-        //     ],
-        // });
     } catch (e) {
         console.warn('Unable to execute user prompted action', e);
     }
