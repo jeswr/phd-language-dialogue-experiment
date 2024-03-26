@@ -145,6 +145,7 @@ app.post('/', async (req, res) => {
         // before continuing here
         const webIdDataset = await dereferenceToStore(negotiationWebId);
         const webIdLdoDataset = createLdoDataset([...webIdDataset]);
+        console.log('The WebId dataset is:', webIdLdoDataset);
 
     
 
