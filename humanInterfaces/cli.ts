@@ -28,7 +28,7 @@ export class CliInterface implements ClientInterface {
             action[1]();
             action = this.actions.shift();
         }
-        
+
         if (this.input) {
             this.input.cancel();
             this.input = undefined;
@@ -87,25 +87,57 @@ export class CliInterface implements ClientInterface {
     }
 
     async accessFlow(req: AccessRequestShape): Promise<AccessGrantsShape> {
+        const choices = [
+            {
+                value: "ReadOnce",
+                name: "Once",
+                description: "Provide access to the data this time only",
+            },
+            {
+                value: "Read",
+                name: "Always",
+                description: "Provide access to the data indefinitely",
+            },
+            {
+                value: "No",
+                name: "No",
+                description: "Do not provide access to the data",
+            },
+        ]
+
+        if (req.requestedGraphs.length > 1) {
+            choices.push({
+                value: "Custom",
+                name: "Custom",
+                description: "Apply different permissions for each document",
+            });
+        }
+
         const permissions = await this.select({
-            message: `In order to [${req.purposeDescription}] do you consent to provide [${req.requestor['@id']}] with access to [${req.requestedGraphs.join(', ')}]`,
-            choices: [
-                {
-                    value: "ReadOnce",
-                    name: "Once",
-                    description: "Provide access to the data this time only",
-                },
-                {
-                    value: "Read",
-                    name: "Always",
-                    description: "Provide access to the data indefinitely",
-                },
-                {
-                    value: "No",
-                    name: "Do not provide access to the data",
-                },
-            ],
+            message: `In order to [${req.purposeDescription}] do you consent to provide <${req.requestor['@id']}> with access to the following data [${req.requestedGraphs.join(', ')}]`,
+            choices: choices,
         });
+
+        if (permissions === "Custom") {
+            const grants: AccessGrantsShape['grants'] = [];
+            for (const graph of req.requestedGraphs) {
+                const permissions = await this.select({
+                    message: `Select permissions for [${graph}]`,
+                    choices: choices.slice(0, 3),
+                });
+                if (permissions === "ReadOnce" || permissions === "Read") {
+                    grants.push({
+                        grantedGraphs: [graph],
+                        modes: [
+                            {
+                                "@id": permissions,
+                            },
+                        ],
+                    });
+                }
+            }
+            return { grants };
+        }
 
         if (permissions === "ReadOnce" || permissions === "Read") {
             return {
@@ -245,25 +277,25 @@ export class CliInterface implements ClientInterface {
 // });
 
 // async function main() {
-    // const answer = await inquirer.prompt([{
-    //     // FIXME: This should just be the predicate that we are using
-    //     name: "action",
-    //     type: "string",
-    //     message: "How can I help you today?",
-    // }]);
+// const answer = await inquirer.prompt([{
+//     // FIXME: This should just be the predicate that we are using
+//     name: "action",
+//     type: "string",
+//     message: "How can I help you today?",
+// }]);
 
-    // const permissions = await inquirer.prompt([{
-    //     // FIXME: This should just be the predicate that we are using
-    //     name: "permissions",
-    //     type: "list",
-    //     message: "In order to proceed do you agree to provide {} with access to {}",
-    //     choices: [
-    //         "One time only",
-    //         "Indefinitely (I will provide access to all future requests without asking beforehand)",
-    //         "Not this time",
-    //         "Never (I won't ask you again)",
-    //     ],
-    // }]);
+// const permissions = await inquirer.prompt([{
+//     // FIXME: This should just be the predicate that we are using
+//     name: "permissions",
+//     type: "list",
+//     message: "In order to proceed do you agree to provide {} with access to {}",
+//     choices: [
+//         "One time only",
+//         "Indefinitely (I will provide access to all future requests without asking beforehand)",
+//         "Not this time",
+//         "Never (I won't ask you again)",
+//     ],
+// }]);
 
 //     console.log(answer, permissions);
 // }

@@ -1,18 +1,20 @@
 import Anthropic from '@anthropic-ai/sdk';
 import express from 'express';
 import rdfHandler from '@rdfjs/express-handler'
-import { DataFactory, Writer } from 'n3';
+import { DataFactory, Writer, Parser } from 'n3';
 import * as path from 'path';
-const { namedNode } = DataFactory;
+const { namedNode, defaultGraph } = DataFactory;
 import 'dotenv/config';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
-import { UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
+import { AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
 import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
-import { createLdoDataset } from '@ldo/ldo';
-import { getSubjects } from '../utils';
+import { createLdoDataset, getDataset } from '@ldo/ldo';
+import { getSubjects, postDataset } from '../utils';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import { n3reasoner } from "eyereasoner";
+import { Quad } from '@rdfjs/types';
+import { QueryEngine } from "@comunica/query-sparql";
 
 const res = yargs(hideBin(process.argv))
   .options({
@@ -43,7 +45,7 @@ const res = yargs(hideBin(process.argv))
   })
   .parse()
 
-const { w: webIdString, p: port, u: userDataPath } = res as Awaited<typeof res>;
+const { w: webIdString, p: port, u: userDataPath, s: interfaceServer } = res as Awaited<typeof res>;
 
 // Future work: make use of tooling that exposes composed tooling via a universal API
 const anthropic = new Anthropic();
@@ -57,6 +59,11 @@ app.use(rdfHandler());
 interface NegotiationResponse {
     negotiationWebId: string;
     requiredNamedGraphs: string[];
+}
+
+function parseN3(input: string): Quad[] {
+    const parser = new Parser({ format: 'text/n3' });
+    return parser.parse(input);
 }
 
 function parseRequiredNamedGraphs(input: string): NegotiationResponse {
@@ -151,15 +158,48 @@ app.post('/', async (req, res) => {
         // Handling permissions
         // We now need to check if the agent representing the user we are negotiating with has permissions
         // to access the required named graphs, and if not, ask for elevanted access.
-        const data = await n3reasoner([...await userData]);
-        console.log('The data is:', data);
+
+        // Note for now we are using named graphs as the scope for permissioning + DToU policies,
+        // but it is not necessary that this is the case in the future
+
+        // FIXME: Fix the conflated prefixes
+        const userDataStore = await userData;
+        const engine = new QueryEngine();
+        const bindings = await engine.queryBindings(`
+        PREFIX acp: <http://www.w3.org/ns/solid/acp#>
+        PREFIX acl: <http://www.w3.org/ns/auth/acl#>
+
+        SELECT DISTINCT ?o WHERE { ?s
+            acp:grant acl:Read ;  
+            acp:context [
+              acp:agent <${negotiationWebId}> ;
+              acp:target ?o ;
+            ] .   }`, { sources: [userDataStore] })
+        
+        
+        const allowedNamedGraphs = await bindings.map((binding) => binding.get('?o')!.value).toArray()
+        const requestNamedGraphs = requiredNamedGraphs.filter((ng) => !allowedNamedGraphs.includes(ng));
+
+        // If there is at least one named graph that needs to be requested, then ask our human interface
+        if (requestNamedGraphs.length > 0) {
+            console.log('Requesting access to named graphs:', requestNamedGraphs);
+            postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(AccessRequestShapeShapeType).fromJson({
+                requestor: {
+                    "@id": negotiationWebId
+                },
+                requestedGraphs: requestNamedGraphs,
+                purposeDescription: `To execute the request [${text}]`,
+            })));
+        }
+
+        // FIXME: Work out how to handle the rest ASYNC (or maybe we should just use the response to the post instead of making all things async?)
 
         // WARNING: We need to be modelling trust relationships and ensure that the negotiationWebId is a trusted party
         // before continuing here
-        const webIdDataset = await dereferenceToStore(negotiationWebId);
-        const webIdLdoDataset = createLdoDataset([...webIdDataset]);
-        const webid = webIdLdoDataset.usingType(WebIdShapeShapeType).fromSubject(negotiationWebId);
-        console.log('The correspondant agent is:', webid.conversationalAgent['@id']);
+        // const webIdDataset = await dereferenceToStore(negotiationWebId);
+        // const webIdLdoDataset = createLdoDataset([...webIdDataset]);
+        // const webid = webIdLdoDataset.usingType(WebIdShapeShapeType).fromSubject(negotiationWebId);
+        // console.log('The correspondant agent is:', webid.conversationalAgent['@id']);
     } catch (e) {
         console.warn('Unable to execute user prompted action', e);
     }

@@ -1,6 +1,7 @@
 @prefix schema: <http://schema.org/> .
 @prefix ex: <http://example.org/> .
-@prefix acp: <http://www.w3.org/ns/auth/acl#> .
+# FIX the conflated ACP and ALC prefixes
+@prefix acp: <https://www.w3.org/ns/solid/acp#> .
 @prefix ex: <http://example.org/> .
 @prefix belief: <http://example.org/belief#> .
 @prefix acl: <http://www.w3.org/ns/auth/acl#> .

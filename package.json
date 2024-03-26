@@ -29,6 +29,7 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",
+    "@comunica/query-sparql": "^3.0.1",
     "@inquirer/prompts": "^4.3.0",
     "@jeswr/pretty-turtle": "^1.4.0",
     "@ldo/ldo": "^0.0.1-alpha.23",
