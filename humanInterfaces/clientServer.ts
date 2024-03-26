@@ -16,7 +16,7 @@ export class ClientServer {
         // How do we verify the validity of requests coming from this URL
         private readonly server: string = 'http://localhost:3001/',
         // Should this be made available here?
-        private readonly agentId: string = 'http://example.org/agent/1'
+        private readonly agentId: string = 'http://localhost:3001/nigel/#me'
     ) {
         this.app = express();
         this.app.use(rdfHandler());
@@ -53,6 +53,7 @@ export class ClientServer {
         this.client.on('userInitiatedRequest', (msg) => {
             const userMessageShape = createLdoDataset([]).usingType(UserMessageShapeType);
             console.log(msg)
+            msg['@id'] ??= this.agentId;
             const dataset = getDataset(userMessageShape.fromJson(msg));
             console.log('Posting user message', ...dataset);
             postDataset(this.server, dataset);

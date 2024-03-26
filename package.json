@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "serve": "npm run build && node dist/alice.js",
+    "serve": "ts-node agentServers/server.ts",
     "interface:cli": "ts-node humanInterfaces/run",
     "build": "tsc",
     "ldo": "ldo build --input ./shapes --output ./ldo",
@@ -37,6 +37,7 @@
     "eventemitter": "^0.3.3",
     "events": "^3.3.0",
     "express": "^4.18.3",
+    "eyereasoner": "^13.1.0",
     "n3": "^1.17.2",
     "rdf-dereference": "^2.2.0",
     "rdf-namespaces": "^1.12.0",
