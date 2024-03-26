@@ -50,5 +50,10 @@ to instead do research on "compresssing" as much language as possible to RDF and
 
 
 Future Work:
-Demonstrating that data & rules are the same thing. For instance:
- - 
+ - Demonstrating that data & rules are the same thing. For instance:
+   - Forwarded ACLs and DToU
+ - Integration with tooling like LangChain (in particular there already seems to be support for integration with KG type databses in https://js.langchain.com/docs/use_cases/graph/semantic)
+
+
+How do we let an agent establish whether they are 
+

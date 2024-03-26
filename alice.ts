@@ -123,10 +123,10 @@ bob.post('/humans', async (req, res) => {
                         text: question,
                         type: 'text'
                     },
-                    // {
-                    //     text: await alicettl,
-                    //     type: 'text'
-                    // }
+                    {
+                        text: await alicettl,
+                        type: 'text'
+                    }
                 ]
             }
         ],

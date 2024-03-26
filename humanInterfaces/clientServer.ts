@@ -1,11 +1,10 @@
-import { LdoBase, LdoBuilder, createLdoDataset, getDataset } from "@ldo/ldo";
+import { createLdoDataset, getDataset } from "@ldo/ldo";
 import rdfHandler from '@rdfjs/express-handler';
-import termSet from '@rdfjs/term-set';
-import { BlankNode, NamedNode } from "@rdfjs/types";
 import express from 'express';
 import { AccessRequestShapeShapeType, AccessGrantsShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
 import { getSubjects, postDataset } from "../utils";
 import { ClientInterface } from "./clientInterface";
+import { matches } from "../utils/matches";
 
 export class ClientServer {
     private readonly app: express.Express;
@@ -14,6 +13,7 @@ export class ClientServer {
     constructor(
         private readonly port: number = 3000,
         private readonly client: ClientInterface,
+        // How do we verify the validity of requests coming from this URL
         private readonly server: string = 'http://localhost:3001/',
         // Should this be made available here?
         private readonly agentId: string = 'http://example.org/agent/1'
@@ -33,6 +33,8 @@ export class ClientServer {
             
             // FIXME: Generalise this
             const accessRequestShape = ldoDataset.usingType(AccessRequestShapeShapeType);
+            // IMPORTANT: We don't actually care about the input data when constructing
+            // the grant response so I'm not quite sure what's going on here
             const accessGrantShape = ldoDataset.usingType(AccessGrantsShapeShapeType);
             for (const data of matches(subjects, accessRequestShape)) {
                 this.client.accessFlow(data)
@@ -53,26 +55,15 @@ export class ClientServer {
             console.log(msg)
             const dataset = getDataset(userMessageShape.fromJson(msg));
             console.log('Posting user message', ...dataset);
-            // postDataset(this.server, dataset);
+            postDataset(this.server, dataset);
         });
 
         await this.client.start();
-
         this._server = this.app.listen(this.port);
     }
 
     async stop() {
         this._server?.close();
         await this.client.stop();
-    }
-}
-
-function* matches<T extends LdoBase>(subjects: termSet<NamedNode<string> | BlankNode>, shapeBuilder: LdoBuilder<T>) {
-    for (const subject of subjects) {
-        try {
-            yield shapeBuilder.fromSubject(subject);
-        } catch (e) {
-            // Do nothing, not all subjects will match every shape
-        }
     }
 }

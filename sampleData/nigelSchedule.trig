@@ -1,8 +1,11 @@
 @prefix schema: <http://schema.org/> .
 @prefix ex: <http://example.org/> .
 @prefix acp: <http://www.w3.org/ns/auth/acl#> .
+@prefix ex: <http://example.org/> .
+@prefix belief: <http://example.org/belief#> .
+@prefix acl: <http://www.w3.org/ns/auth/acl#> .
 
-ex:nigel belief:believes ex:jun .
+# ex:nigel belief:believes ex:jun .
 
 []
   acp:grant acl:Read, acl:Write ;  
@@ -11,9 +14,16 @@ ex:nigel belief:believes ex:jun .
     acp:target <http://example.org/nigel/events> ;
   ] .
 
+<http://example.org/nigel/colleagues> {
+  <http://localhost:3001/jun/#me> a schema:Person ;
+    schema:name "Jun Zhao" .
+
+  <http://localhost:3002/nigel/#me> schema:knows <http://localhost:3001/jun/#me> .
+}
+
 <http://example.org/nigel/events> {
   ex:nigel a schema:Person ;
-    schema:name "Nigel" ;
+    schema:name "Nigel Shadbolt" ;
     schema:hasOccupation [
       a schema:Occupation ;
       schema:name "Researcher"

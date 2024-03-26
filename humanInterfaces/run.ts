@@ -11,7 +11,7 @@ const interfaceMappings = {
 program
     .option('-d, --debug', 'output extra debugging')
     .option('-s, --server', 'The URL of the main agent server', 'http://localhost:3000/')
-    .option('-p, --port', 'The port of the interface server', '3001')
+    .option('-p, --port', 'The port of the interface server', '3005')
     .option('-i, --interface', `The type if interface to spin up. Options: [${Object.keys(interfaceMappings)}]`, Object.keys(interfaceMappings)[0]);
 
 program.parse(process.argv);
