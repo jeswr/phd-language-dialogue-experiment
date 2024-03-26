@@ -15,10 +15,10 @@
   ] .
 
 <http://example.org/nigel/colleagues> {
-  <http://localhost:3001/jun/#me> a schema:Person ;
+  <http://localhost:3001/jun#me> a schema:Person ;
     schema:name "Jun Zhao" .
 
-  <http://localhost:3002/nigel/#me> schema:knows <http://localhost:3001/jun/#me> .
+  <http://localhost:3002/nigel#me> schema:knows <http://localhost:3001/jun#me> .
 }
 
 <http://example.org/nigel/events> {

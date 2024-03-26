@@ -16,7 +16,7 @@ export class ClientServer {
         // How do we verify the validity of requests coming from this URL
         private readonly server: string = 'http://localhost:3001/',
         // Should this be made available here?
-        private readonly agentId: string = 'http://localhost:3002/nigel/#me'
+        private readonly agentId: string = 'http://localhost:3002/nigel#me'
     ) {
         this.app = express();
         this.app.use(rdfHandler());
