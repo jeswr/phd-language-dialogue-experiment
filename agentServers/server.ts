@@ -17,10 +17,10 @@ const program = new Command();
 
 program
     .option('-d, --debug', 'output extra debugging')
-    .option('-s, --server', 'The URL of the interface server', 'http://localhost:3005/')
-    .option('-w, --webid', 'The webId of the agent this server is representing', "http://localhost:3002/nigel/#me")
-    .option('-u, --userData', 'A path for the user data', 'sampleData/nigelSchedule.trig')
-    .option('-p, --port', 'The port of the server', '3000');
+    .option('-s, --server', 'The URL of the interface server <string>', 'http://localhost:3005/')
+    .option('-w, --webid', 'The webId of the agent this server is representing <string>', "http://localhost:3002/nigel/#me")
+    .option('-u, --userData', 'A path for the user data <string>', 'sampleData/nigelSchedule.trig')
+    .option('-p, --port', 'The port of the server <string>', '3000');
 
 program.parse(process.argv);
 
@@ -29,6 +29,9 @@ const options = program.opts();
 const webIdString = options.webid;
 const userDataPath = options.userData;
 const port = parseInt(options.port);
+
+console.log(options)
+throw new Error(`The port is ${port}`);
 
 if (typeof webIdString !== 'string') {
     throw new Error('Expected a webId');

@@ -9,10 +9,9 @@ const interfaceMappings = {
 } as const
 
 program
-    .option('-d, --debug', 'output extra debugging')
-    .option('-s, --server', 'The URL of the main agent server', 'http://localhost:3000/')
-    .option('-p, --port', 'The port of the interface server', '3005')
-    .option('-w, --webid', 'The WebId of the agent being represented', 'http://localhost:3002/nigel/#me')
+    .option('-s, --server', 'The URL of the main agent server <string>', 'http://localhost:3000/')
+    .option('-p, --port', 'The port of the interface server <number>', '3005')
+    .option('-w, --webid', 'The WebId of the agent being represented <string>', 'http://localhost:3002/nigel/#me')
     .option('-i, --interface', `The type if interface to spin up. Options: [${Object.keys(interfaceMappings)}]`, Object.keys(interfaceMappings)[0]);
 
 program.parse(process.argv);

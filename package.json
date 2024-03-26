@@ -4,7 +4,6 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "serve": "ts-node agentServers/server.ts",
     "interface:cli": "ts-node humanInterfaces/run",
     "build": "tsc",
     "ldo": "ldo build --input ./shapes --output ./ldo",
@@ -15,9 +14,13 @@
     "watch:shapes": "nodemon --watch shapes/*.shaclc -x \"npm run shapes\"",
     "watch:tsc": "tsc --watch",
     "watch": "run-p watch:*",
-    "serve:webIds:nigel": "rdf-serve sampleData/webIds/jun -p 3002",
-    "serve:webIds:jun": "rdf-serve sampleData/webIds/nigel -p 3003",
-    "serve:webIds": "run-p serve:webIds:*"
+    "serve:agentServer:nigel": "ts-node agentServers/server.ts --port 3006",
+    "serve:agentServer:jun": "ts-node agentServers/server.ts --port 3005",
+    "serve:agentServers": "run-p serve:agentServer:*",
+    "serve:webIds:nigel": "rdf-serve sampleData/webIds/nigel -p 3002",
+    "serve:webIds:jun": "rdf-serve sampleData/webIds/jun -p 3001",
+    "serve:webIds": "run-p serve:webIds:*",
+    "serve": "run-p serve:*"
   },
   "author": "",
   "license": "MIT",
