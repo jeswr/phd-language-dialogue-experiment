@@ -15,6 +15,7 @@ import { hideBin } from 'yargs/helpers';
 import { n3reasoner } from "eyereasoner";
 import { Quad } from '@rdfjs/types';
 import { QueryEngine } from "@comunica/query-sparql";
+import { v4 } from 'uuid';
 
 const res = yargs(hideBin(process.argv))
   .options({
@@ -86,6 +87,10 @@ function parseRequiredNamedGraphs(input: string): NegotiationResponse {
     }
 }
 
+// This memory storage is a workaround for
+// storing 
+const memory = new Map<string, string>();
+
 app.post('/', async (req, res) => {
     const dataset = await req.dataset?.();
 
@@ -103,6 +108,9 @@ app.post('/', async (req, res) => {
         if (typeof text !== 'string') {
             throw new Error('No text found');
         }
+
+        // Don't leave the client hanging
+        res.status(200).send('Message Recieved').end();
 
         console.log('The user query is:', text);
         // Work out what user data, and negotiating WebId
@@ -169,28 +177,36 @@ app.post('/', async (req, res) => {
         PREFIX acp: <http://www.w3.org/ns/solid/acp#>
         PREFIX acl: <http://www.w3.org/ns/auth/acl#>
 
-        SELECT DISTINCT ?o WHERE { ?s
-            acp:grant acl:Read ;  
-            acp:context [
-              acp:agent <${negotiationWebId}> ;
-              acp:target ?o ;
-            ] .   }`, { sources: [userDataStore] })
-        
-        
+        SELECT DISTINCT ?o WHERE {
+            ?s
+                acp:grant acl:Read ;  
+                acp:context [
+                  acp:agent <${negotiationWebId}> ;
+                  acp:target ?o ;
+                ] .
+        }`, { sources: [userDataStore] })
+
         const allowedNamedGraphs = await bindings.map((binding) => binding.get('?o')!.value).toArray()
         const requestNamedGraphs = requiredNamedGraphs.filter((ng) => !allowedNamedGraphs.includes(ng));
 
         // If there is at least one named graph that needs to be requested, then ask our human interface
         if (requestNamedGraphs.length > 0) {
             console.log('Requesting access to named graphs:', requestNamedGraphs);
-            postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(AccessRequestShapeShapeType).fromJson({
+
+            // There needs to be some kind of internal cleanup when this request fails
+            // in order to stop user tasks lingering in memory
+            await postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(AccessRequestShapeShapeType).fromJson({
                 requestor: {
                     "@id": negotiationWebId
                 },
                 requestedGraphs: requestNamedGraphs,
-                purposeDescription: `To execute the request [${text}]`,
+                // purposeDescription: `To execute the request [${text}]`,
+                purposeDescription: text
             })));
+            return;
         }
+
+
 
         // FIXME: Work out how to handle the rest ASYNC (or maybe we should just use the response to the post instead of making all things async?)
 
@@ -200,6 +216,8 @@ app.post('/', async (req, res) => {
         // const webIdLdoDataset = createLdoDataset([...webIdDataset]);
         // const webid = webIdLdoDataset.usingType(WebIdShapeShapeType).fromSubject(negotiationWebId);
         // console.log('The correspondant agent is:', webid.conversationalAgent['@id']);
+
+        return;
     } catch (e) {
         console.warn('Unable to execute user prompted action', e);
     }
