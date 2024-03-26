@@ -18,7 +18,7 @@ const program = new Command();
 program
     .option('-d, --debug', 'output extra debugging')
     .option('-s, --server', 'The URL of the interface server', 'http://localhost:3005/')
-    .option('-w, --webid', 'The webId of the agent this server is representing', "http://localhost:3001/nigel/#me")
+    .option('-w, --webid', 'The webId of the agent this server is representing', "http://localhost:3002/nigel/#me")
     .option('-u, --userData', 'A path for the user data', 'sampleData/nigelSchedule.trig')
     .option('-p, --port', 'The port of the server', '3000');
 
@@ -46,6 +46,31 @@ const userDataTrig = userData.then((schedule) => new Writer({ format: 'trig' }).
 
 const app = express();
 app.use(rdfHandler());
+
+interface NegotiationResponse {
+    negotiationWebId: string;
+    requiredNamedGraphs: string[];
+}
+
+function parseRequiredNamedGraphs(input: string): NegotiationResponse {
+    const parsedResponse = JSON.parse(input);
+
+    const { negotiationWebId, requiredNamedGraphs } = parsedResponse;
+
+    // FIXME: Handle cases where there isn't a WebId here
+    if (typeof negotiationWebId !== 'string') {
+        throw new Error('No negotiation WebId found');
+    }
+
+    if (!Array.isArray(requiredNamedGraphs) || requiredNamedGraphs.some((ng) => typeof ng !== 'string')) {
+        throw new Error('No required named graphs found');
+    }
+
+    return {
+        negotiationWebId,
+        requiredNamedGraphs
+    }
+}
 
 app.post('/', async (req, res) => {
     const dataset = await req.dataset?.();
@@ -90,8 +115,6 @@ app.post('/', async (req, res) => {
         // `If there is no WebId found that is related to <${webIdString}> via <http://schema.org/knows> and can provide the information to answer the prompt, please return an empty string for negotiationWebId.` +
         'I want to parse this array directly so please do not include anything else in the response.\n';
 
-        console.log('The question for claude is:', question);
-
         const { content: [{ text: ngText }] } = await anthropic.messages.create({
             model: 'claude-3-sonnet-20240229',
             max_tokens: 4096,
@@ -115,8 +138,15 @@ app.post('/', async (req, res) => {
 
         // FIXME: With Claude 3 sonnet we are often seeing the colleagues graph turn up as well, we should
         // find a way of signalling that we usually don't need to do this.
-        const parsedResponse = JSON.parse(ngText);
-        console.log('The WebId + named graphs required to answer the user queries are:', parsedResponse);
+        const { negotiationWebId, requiredNamedGraphs } = parseRequiredNamedGraphs(ngText);
+        console.log('The WebId + named graphs required to answer the user queries are:', { negotiationWebId, requiredNamedGraphs });
+
+        // WARNING: We need to be modelling trust relationships and ensure that the negotiationWebId is a trusted party
+        // before continuing here
+        const webIdDataset = await dereferenceToStore(negotiationWebId);
+        const webIdLdoDataset = createLdoDataset([...webIdDataset]);
+
+    
 
         // Work out which user we need to negotiate with
         // const question = 'Given the following prompt:\n' +
@@ -147,7 +177,7 @@ app.post('/', async (req, res) => {
         //     ],
         // });
     } catch (e) {
-        console.warn('No user message found');
+        console.warn('Unable to execute user prompted action', e);
     }
 
     return res.status(500).send('Unknown error');
