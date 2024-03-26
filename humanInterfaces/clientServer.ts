@@ -11,12 +11,12 @@ export class ClientServer {
     private _server: ReturnType<typeof this.app.listen> | undefined = undefined;
 
     constructor(
-        private readonly port: number = 3000,
+        private readonly port: number,
         private readonly client: ClientInterface,
         // How do we verify the validity of requests coming from this URL
-        private readonly server: string = 'http://localhost:3001/',
+        private readonly server: string,
         // Should this be made available here?
-        private readonly agentId: string = 'http://localhost:3002/nigel#me'
+        private readonly agentId: string
     ) {
         this.app = express();
         this.app.use(rdfHandler());
@@ -50,12 +50,15 @@ export class ClientServer {
     }
 
     async start() {
+        // This only makes sense on pop-out tabs and should be removed in the future
+        console.clear();
+        // FIXME use WebId to make this a string
+        // console.log(`Terminal for ${this.agentId} running on http://localhost:${this.port}/`);
+
         this.client.on('userInitiatedRequest', (msg) => {
             const userMessageShape = createLdoDataset([]).usingType(UserMessageShapeType);
-            console.log(msg)
             msg['@id'] ??= this.agentId;
             const dataset = getDataset(userMessageShape.fromJson(msg));
-            console.log('Posting user message', ...dataset);
             postDataset(this.server, dataset);
         });
 

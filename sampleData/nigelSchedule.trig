@@ -10,7 +10,7 @@
 []
   acp:grant acl:Read, acl:Write ;  
   acp:context [
-    acp:agent ex:jun ;
+    acp:agent <http://localhost:3001/jun#me> ;
     acp:target <http://example.org/nigel/events> ;
   ] .
 

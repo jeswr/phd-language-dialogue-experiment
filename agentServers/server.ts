@@ -7,10 +7,12 @@ const { namedNode } = DataFactory;
 import 'dotenv/config';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
 import { UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
+import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
 import { createLdoDataset } from '@ldo/ldo';
 import { getSubjects } from '../utils';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
+import { n3reasoner } from "eyereasoner";
 
 const res = yargs(hideBin(process.argv))
   .options({
@@ -41,21 +43,7 @@ const res = yargs(hideBin(process.argv))
   })
   .parse()
 
-
-const options = res as Awaited<typeof res>;
-
-
-const webIdString = options.w;
-const userDataPath = options.u;
-const port = options.p;
-
-if (typeof webIdString !== 'string') {
-    throw new Error('Expected a webId');
-}
-
-if (typeof userDataPath !== 'string') {
-    throw new Error('Expected a user data path');
-}
+const { w: webIdString, p: port, u: userDataPath } = res as Awaited<typeof res>;
 
 // Future work: make use of tooling that exposes composed tooling via a universal API
 const anthropic = new Anthropic();
@@ -160,11 +148,18 @@ app.post('/', async (req, res) => {
         const { negotiationWebId, requiredNamedGraphs } = parseRequiredNamedGraphs(ngText);
         console.log('The WebId + named graphs required to answer the user queries are:', { negotiationWebId, requiredNamedGraphs });
 
+        // Handling permissions
+        // We now need to check if the agent representing the user we are negotiating with has permissions
+        // to access the required named graphs, and if not, ask for elevanted access.
+        const data = await n3reasoner([...await userData]);
+        console.log('The data is:', data);
+
         // WARNING: We need to be modelling trust relationships and ensure that the negotiationWebId is a trusted party
         // before continuing here
         const webIdDataset = await dereferenceToStore(negotiationWebId);
         const webIdLdoDataset = createLdoDataset([...webIdDataset]);
-        console.log('The WebId dataset is:', webIdLdoDataset);
+        const webid = webIdLdoDataset.usingType(WebIdShapeShapeType).fromSubject(negotiationWebId);
+        console.log('The correspondant agent is:', webid.conversationalAgent['@id']);
     } catch (e) {
         console.warn('Unable to execute user prompted action', e);
     }

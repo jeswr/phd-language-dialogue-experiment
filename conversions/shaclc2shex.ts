@@ -1,3 +1,4 @@
+import { Quad } from "@rdfjs/types";
 import Writer from "@shexjs/writer";
 import * as fs from 'fs';
 import { DataFactory, Store } from "n3";
@@ -16,7 +17,14 @@ const shaclcFiles = fs.readdirSync(shapesDir).filter(file => path.extname(file) 
 shaclcFiles.forEach(async file => {
     const shaclcPath = path.join(shapesDir, file);
     const shexPath = path.join(shapesDir, `${path.basename(file, '.shaclc')}.shex`);
-    const shapes = parse(fs.readFileSync(shaclcPath, 'utf8'));
+
+    let shapes: Quad[] & { prefixes: Record<string, string> };
+
+    try {
+      shapes = parse(fs.readFileSync(shaclcPath, 'utf8'));
+    } catch (e) {
+      throw new Error(`Error parsing ${shaclcPath}: ${e}`);
+    }
     
     // Hacky SHACL -> SHEX
     const shapeStore = new Store(shapes);
