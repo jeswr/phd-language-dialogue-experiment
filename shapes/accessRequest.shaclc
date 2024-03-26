@@ -9,6 +9,9 @@ shape ex:AccessRequestShape -> ex:AccessRequest {
 	# TODO: Add information of the specific operation
 	# in particular, agreed upon IRI terms of use
 	ex:purposeDescription [1..1] xsd:string .
+	# TODO: Get rid of this in the future, we shouldn't
+	# be doing state management this way
+	ex:processId [1..1] xsd:string .
 }
 
 shape ex:AccessGrantShape -> ex:AccessGrant {
@@ -19,6 +22,9 @@ shape ex:AccessGrantShape -> ex:AccessGrant {
 
 shape ex:AccessGrantsShape -> ex:AccessGrant {
 	ex:grants [1..*] @ex:AccessGrantShape .
+	# TODO: Get rid of this in the future, we shouldn't
+	# be doing state management this way
+	ex:processId [1..1] xsd:string .
 }
 
 # FIXME: Long term we should be doing mostly codegen from this

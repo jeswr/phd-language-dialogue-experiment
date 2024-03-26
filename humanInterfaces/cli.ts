@@ -136,11 +136,12 @@ export class CliInterface implements ClientInterface {
                     });
                 }
             }
-            return { grants };
+            return { grants, processId: req.processId };
         }
 
         if (permissions === "ReadOnce" || permissions === "Read") {
             return {
+                processId: req.processId,
                 grants: [
                     {
                         grantedGraphs: req.requestedGraphs,
@@ -155,6 +156,7 @@ export class CliInterface implements ClientInterface {
         }
 
         return {
+            processId: req.processId,
             grants: [],
         };
     }

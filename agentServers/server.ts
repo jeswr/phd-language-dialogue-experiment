@@ -1,19 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
 import express from 'express';
 import rdfHandler from '@rdfjs/express-handler'
-import { DataFactory, Writer, Parser } from 'n3';
+import { DataFactory, Writer, Parser, Store } from 'n3';
 import * as path from 'path';
-const { namedNode, defaultGraph } = DataFactory;
+const { namedNode, defaultGraph, blankNode } = DataFactory;
 import 'dotenv/config';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
-import { AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
+import { AccessGrantShapeShapeType, AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
 import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
 import { createLdoDataset, getDataset } from '@ldo/ldo';
 import { getSubjects, postDataset } from '../utils';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import { n3reasoner } from "eyereasoner";
-import { Quad } from '@rdfjs/types';
+import { Quad, NamedNode } from '@rdfjs/types';
 import { QueryEngine } from "@comunica/query-sparql";
 import { v4 } from 'uuid';
 
@@ -62,11 +62,6 @@ interface NegotiationResponse {
     requiredNamedGraphs: string[];
 }
 
-function parseN3(input: string): Quad[] {
-    const parser = new Parser({ format: 'text/n3' });
-    return parser.parse(input);
-}
-
 function parseRequiredNamedGraphs(input: string): NegotiationResponse {
     const parsedResponse = JSON.parse(input);
 
@@ -87,9 +82,81 @@ function parseRequiredNamedGraphs(input: string): NegotiationResponse {
     }
 }
 
+interface ProcessInformation {
+    prompt: string;
+    // The documents that are permitted to be accessed
+    // by the negotiationWebId
+    permittedDocuments?: string[];
+    negotiationWebId?: string;
+    negotiationAgent?: string;
+}
+
 // This memory storage is a workaround for
 // storing 
-const memory = new Map<string, string>();
+const memory: Record<string, ProcessInformation> = {};
+
+async function continueProcess(processId: string) {
+    // TODO: Implement an escape case when we don't have enough data to continue
+    console.log('Continuing process:', processId, memory[processId]);
+
+    const { prompt, negotiationWebId, permittedDocuments } = memory[processId];
+    console.log('The prompt is:', prompt, negotiationWebId, permittedDocuments);
+
+    if (!negotiationWebId) {
+        throw new Error('No negotiation WebId found');
+    }
+
+    if (!permittedDocuments) {
+        throw new Error('No permitted documents found');
+    }
+
+    // Here we collect the data from all graphs that we are allowed to use
+    // and then we can use this data to answer the prompt
+    // Note that this introduces the (very strict) assumption that
+    // all of the documents contain data which is globally true
+    const userDataStore = await userData;
+    const allRelevantData = new Store();
+    for (const document of permittedDocuments) {
+        allRelevantData.addQuads([...userDataStore.match(null, null, null, namedNode(document))]);
+    }
+
+    const data = new Writer({ format: 'trig' }).quadsToString([...allRelevantData]);
+    const question = 'Consider the following prompt:\n' +
+    '---\n' +
+    memory[processId].prompt + '\n' +
+    '---\n' +
+    `You are representing a user with the WebId <${webIdString}>\n` +
+    // 'Here is their data they have chosen to disclose' +
+    // '---\n' +
+    // data + '\n' +
+    // '---\n' +
+    `Using the data provided in the following message, please formulate a question to ask an agent representing <${negotiationWebId}> in order to achieve the outcome\n` +
+    'expressed in the prompt. The message you send should include any data that will be needed to answer the prompt.\n' +
+    `Please do not include any other text in your other than what should be forwarded to the agent representing <${negotiationWebId}>.\n`;
+
+    const { content: [{ text: ngText }] } = await anthropic.messages.create({
+        model: 'claude-3-sonnet-20240229',
+        max_tokens: 4096,
+        temperature: 0,
+        messages: [
+            {
+                role: 'user',
+                content:  [
+                    {
+                        text: question,
+                        type: 'text'
+                    },
+                    {
+                        text: data,
+                        type: 'text'
+                    }
+                ]
+            }
+        ],
+    });
+
+    console.log(ngText);
+}
 
 app.post('/', async (req, res) => {
     const dataset = await req.dataset?.();
@@ -108,6 +175,12 @@ app.post('/', async (req, res) => {
         if (typeof text !== 'string') {
             throw new Error('No text found');
         }
+
+        // Becasue we have more "statically defined" flows for now we are
+        // using an id for each exchange. I imagine this is something we
+        // will want to change in the future.
+        const processId = v4();
+        memory[processId] = { prompt: text };
 
         // Don't leave the client hanging
         res.status(200).send('Message Recieved').end();
@@ -161,6 +234,7 @@ app.post('/', async (req, res) => {
         // FIXME: With Claude 3 sonnet we are often seeing the colleagues graph turn up as well, we should
         // find a way of signalling that we usually don't need to do this.
         const { negotiationWebId, requiredNamedGraphs } = parseRequiredNamedGraphs(ngText);
+        memory[processId].negotiationWebId = negotiationWebId;
         console.log('The WebId + named graphs required to answer the user queries are:', { negotiationWebId, requiredNamedGraphs });
 
         // Handling permissions
@@ -187,7 +261,9 @@ app.post('/', async (req, res) => {
         }`, { sources: [userDataStore] })
 
         const allowedNamedGraphs = await bindings.map((binding) => binding.get('?o')!.value).toArray()
-        const requestNamedGraphs = requiredNamedGraphs.filter((ng) => !allowedNamedGraphs.includes(ng));
+        memory[processId].permittedDocuments = requiredNamedGraphs.filter((ng) => !allowedNamedGraphs.includes(ng));
+        const requestNamedGraphs = requiredNamedGraphs.filter((ng) => allowedNamedGraphs.includes(ng));
+
 
         // If there is at least one named graph that needs to be requested, then ask our human interface
         if (requestNamedGraphs.length > 0) {
@@ -201,12 +277,14 @@ app.post('/', async (req, res) => {
                 },
                 requestedGraphs: requestNamedGraphs,
                 // purposeDescription: `To execute the request [${text}]`,
-                purposeDescription: text
+                purposeDescription: text,
+                processId
             })));
             return;
         }
 
-
+        memory[processId].permittedDocuments = requiredNamedGraphs;
+        continueProcess(processId);
 
         // FIXME: Work out how to handle the rest ASYNC (or maybe we should just use the response to the post instead of making all things async?)
 
@@ -220,6 +298,52 @@ app.post('/', async (req, res) => {
         return;
     } catch (e) {
         console.warn('Unable to execute user prompted action', e);
+    }
+
+    try {
+        // Collecting the access request response
+        const { grants, processId } = ldoDataset.usingType(AccessGrantsShapeShapeType).fromSubject(webId);
+
+        if (!Array.isArray(grants)) {
+            throw new Error('No grants found');
+        }
+
+        if (typeof processId !== 'string') {
+            throw new Error('No processId found');
+        }
+
+        memory[processId].permittedDocuments ??= [];
+
+        const { negotiationWebId, permittedDocuments } = memory[processId];
+        if (!negotiationWebId) {
+            throw new Error('No negotiation WebId found');
+        }
+
+        for (const grant of grants) {
+            const { grantedGraphs, modes } = grant;
+
+            if (modes.some((mode) => mode['@id'] === 'Read')) {
+                for (const graph of grantedGraphs) {
+                    const bn = blankNode();
+                    const context = blankNode();
+                    (await userData).addQuads([
+                        DataFactory.quad(bn, namedNode('http://www.w3.org/ns/solid/acp#grant'), namedNode('http://www.w3.org/ns/auth/acl#Read')),
+                        DataFactory.quad(bn, namedNode('http://www.w3.org/ns/solid/acp#context'), context),
+                        DataFactory.quad(context, namedNode('http://www.w3.org/ns/solid/acp#target'), namedNode(graph)),
+                        DataFactory.quad(context, namedNode('http://www.w3.org/ns/solid/acp#agent'), namedNode(negotiationWebId))
+                    ]);
+                }
+                memory[processId].permittedDocuments?.push(...grantedGraphs);
+            } else if (modes.some((mode) => mode['@id'] === 'ReadOnce')) {
+                memory[processId].permittedDocuments?.push(...grantedGraphs);
+            }
+        }
+
+        // Don't leave the client hanging
+        res.status(200).send('Message Recieved').end();
+        continueProcess(processId);
+    } catch (e) {
+        console.warn('Unable to execute access request action', e);
     }
 
     return res.status(500).send('Unknown error');
