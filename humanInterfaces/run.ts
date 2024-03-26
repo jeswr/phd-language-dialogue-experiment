@@ -14,7 +14,7 @@ program
     .option('-w, --webid', 'The WebId of the agent being represented <string>', 'http://localhost:3002/nigel/#me')
     .option('-i, --interface', `The type if interface to spin up. Options: [${Object.keys(interfaceMappings)}]`, Object.keys(interfaceMappings)[0]);
 
-program.parse(process.argv);
+program.parse(process.argv.slice(1));
 
 const options = program.opts();
 const port = parseInt(options.port);

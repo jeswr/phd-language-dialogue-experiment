@@ -13,25 +13,79 @@ import { AccessRequestShapeShapeType, AccessGrantsShapeShapeType, UserMessageSha
 import { createLdoDataset } from '@ldo/ldo';
 import { getSubjects } from '../utils';
 
-const program = new Command();
+import yargs from 'yargs/yargs';
+import { hideBin } from 'yargs/helpers';
 
-program
-    .option('-d, --debug', 'output extra debugging')
-    .option('-s, --server', 'The URL of the interface server <string>', 'http://localhost:3005/')
-    .option('-w, --webid', 'The webId of the agent this server is representing <string>', "http://localhost:3002/nigel/#me")
-    .option('-u, --userData', 'A path for the user data <string>', 'sampleData/nigelSchedule.trig')
-    .option('-p, --port', 'The port of the server <string>', '3000');
+// const yargs = require('yargs/yargs')
+// const { hideBin } = require('yargs/helpers')
 
-program.parse(process.argv);
+// const res = yargs(hideBin(process.argv))
+//   .command('serve [port]', 'start the server', (yargs) => {
+//     return yargs
+//       .positional('port', {
+//         describe: 'port to bind on',
+//         default: 5000
+//       })
+//   }, (argv) => {
+//     if (argv.verbose) console.info(`start server on :${argv.port}`)
+//     serve(argv.port)
+//   })
+//   .option('verbose', {
+//     alias: 'v',
+//     type: 'boolean',
+//     description: 'Run with verbose logging'
+//   })
+//   .parse()
+// const program = new Command();
 
-const options = program.opts();
+// program
+//     .option('-d, --debug', 'output extra debugging')
+//     .option('-s, --server', 'The URL of the interface server <string>', 'http://localhost:3005/')
+//     .option('-w, --webid', 'The webId of the agent this server is representing <string>', "http://localhost:3002/nigel/#me")
+//     .option('-u, --userData', 'A path for the user data <string>', 'sampleData/nigelSchedule.trig')
+//     .option('-p, --port', 'The port of the server <string>');
 
-const webIdString = options.webid;
-const userDataPath = options.userData;
-const port = parseInt(options.port);
+// program.parse(process.argv.slice(1));
 
-console.log(options)
-throw new Error(`The port is ${port}`);
+// const options = program.opts();
+
+
+const res = yargs(hideBin(process.argv))
+  .options({
+    p: {
+        alias: 'port',
+        type: 'number',
+        description: 'The port of the server',
+        demandOption: true,
+    },
+    s: {
+        alias: 'server',
+        type: 'string',
+        description: 'The URL of the interface server',
+        demandOption: true,
+    },
+    w: {
+        alias: 'webid',
+        type: 'string',
+        description: 'The webId of the agent this server is representing',
+        demandOption: true,
+    },
+    u: {
+        alias: 'userData',
+        type: 'string',
+        description: 'A path for the user data',
+        demandOption: true,
+    }
+  })
+  .parse()
+
+
+const options = res as Awaited<typeof res>;
+
+
+const webIdString = options.w;
+const userDataPath = options.u;
+const port = options.p;
 
 if (typeof webIdString !== 'string') {
     throw new Error('Expected a webId');
