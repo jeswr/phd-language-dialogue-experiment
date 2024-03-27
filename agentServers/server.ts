@@ -68,7 +68,6 @@ const res = yargs(hideBin(process.argv))
 const { w: webIdString, p: port, u: userDataPath, s: interfaceServer } = res as Awaited<typeof res>;
 
 // Future work: make use of tooling that exposes composed tooling via a universal API
-const anthropic = new Anthropic();
 const webId = namedNode(webIdString);
 const userData = dereferenceToStore(path.join(process.cwd(), userDataPath));
 const userDataTrig = userData.then((schedule) => new Writer({ format: 'trig' }).quadsToString([...schedule]));
@@ -109,8 +108,6 @@ function parseRequiredNamedGraphs(input: string): NegotiationResponse {
 }
 
 function parseRequiredNamedGraphsWithoutWebid(input: string): NegotiationResponseWithDescription {
-    console.log('The input is: [' + input + ']');
-    fs.writeFileSync(path.join(__dirname, 'input.json'), input);
     const parsedResponse = JSON.parse(input);
 
     const { requiredNamedGraphs, description } = parsedResponse;
@@ -145,12 +142,68 @@ interface ProcessInformation {
 const memory: Record<string, ProcessInformation> = {};
 
 async function continueProcess(processId: string) {
+    // This SHOULD NOT be the exit criteria in the future, it is just a workaround for now
+    const { prompt, negotiationWebId, permittedDocuments, negotiatorData, negotiationAgent } = memory[processId];
+    if (negotiatorData) {
+        const negotiatorTrig = new Writer({ format: 'trig' }).quadsToString([...negotiatorData]);
+        if (!permittedDocuments) {
+            throw new Error('No permitted documents found');
+        }
+        const agentData = new Writer({ format: 'trig' }).quadsToString([...await getUserData(permittedDocuments)]);
+
+        // By this point we should have all the data we need to answer the prompt
+        const question = 'Consider the following prompt:\n' +
+        '-'.repeat(100) + '\n' +
+        prompt + '\n' +
+        '-'.repeat(100) + '\n' +
+        `You are representing a user with the WebId <${webIdString}>\n` +
+        'Here is their data they have chosen to disclose\n' +
+        '-'.repeat(100) + '\n' +
+        agentData + '\n' +
+        '-'.repeat(100) + '\n' +
+        `You are negotiating with an agent with the WebId <${negotiationWebId}>\n` +
+        'Here is the data they have chosen to disclose\n' +
+        '-'.repeat(100) + '\n' +
+        negotiatorTrig + '\n' +
+        '-'.repeat(100) + '\n' +
+        'Please formulate an answer to the prompt using the data provided above.\n' +
+        'The message you send should be definitive and not require any follow up from the agent you are negotiating with.\n';
+
+        const { content: ngText } = await model.invoke(question);
+        if (typeof ngText !== 'string') {
+            throw new Error('No negotiation response found');
+        }
+        console.log('The response to the prompt is:', ngText, '\nthe question was\n', question);
+        return;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     // TODO: Implement an escape case when we don't have enough data to continue
     console.log('Continuing process:', processId, memory[processId]);
 
     memory[processId].callNumber += 1;
 
-    const { prompt, negotiationWebId, permittedDocuments } = memory[processId];
+    // const { prompt, negotiationWebId, permittedDocuments } = memory[processId];
     console.log('The prompt is:', prompt, negotiationWebId, permittedDocuments);
 
     if (!negotiationWebId) {
@@ -165,11 +218,7 @@ async function continueProcess(processId: string) {
     // and then we can use this data to answer the prompt
     // Note that this introduces the (very strict) assumption that
     // all of the documents contain data which is globally true
-    const userDataStore = await userData;
-    const allRelevantData = new Store();
-    for (const document of permittedDocuments) {
-        allRelevantData.addQuads([...userDataStore.match(null, null, null, namedNode(document))]);
-    }
+    const allRelevantData = await getUserData(permittedDocuments);
 
     const data = new Writer({ format: 'trig' }).quadsToString([...allRelevantData]);
 
@@ -484,6 +533,16 @@ app.post('/', async (req, res) => {
 app.listen(port, () => {
     console.log(`<${webIdString}>'s agent listening at http://localhost:${port}`);
 })
+
+async function getUserData(permittedDocuments: string[]) {
+    const userDataStore = await userData;
+    const allRelevantData = new Store();
+    for (const document of permittedDocuments) {
+        allRelevantData.addQuads([...userDataStore.match(null, null, null, namedNode(document))]);
+    }
+    return allRelevantData;
+}
+
 async function getDocumentStates(negotiationWebId: string, requiredNamedGraphs: string[]) {
     const allowedNamedGraphs = await getAllowedGraphs(negotiationWebId);
     const permittedDocuments = requiredNamedGraphs.filter((ng) => allowedNamedGraphs.includes(ng));
