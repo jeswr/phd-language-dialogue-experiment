@@ -4,7 +4,12 @@ import { ClientInterface } from './clientInterface';
 import EventEmitter from 'events';
 
 // const defaultInput = () => input({ message: "Let me know if there is anything I can do for you." });
-const defaultInput = () => input({ message: "" });
+const defaultInput = () => input({
+    message: "",
+    // FIXME: Remove this default outside of dev
+    default: "Schedule a meeting with Nigel",
+    
+});
 
 type CancelablePromise<T> = ReturnType<typeof select<T>>;
 

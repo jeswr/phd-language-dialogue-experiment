@@ -23,11 +23,12 @@ import { UpstashRedisCache } from "@langchain/community/caches/upstash_redis";
 // import { Lo } from "@langchain/community/caches/";
 import https from 'https';
 
-const client = Redis.fromEnv({
-  agent: new https.Agent({ keepAlive: true }),
+const cache = new UpstashRedisCache({
+  config: {
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  },
 });
-
-const cache = new UpstashRedisCache({ client });
 const model = new ChatAnthropic({
     cache,
     modelName: 'claude-3-sonnet-20240229',
@@ -76,8 +77,11 @@ const userDataTrig = userData.then((schedule) => new Writer({ format: 'trig' }).
 const app = express();
 app.use(rdfHandler());
 
-interface NegotiationResponse {
+interface NegotiationResponse extends NegotiationResponseWithoutWebid {
     negotiationWebId: string;
+}
+
+interface NegotiationResponseWithoutWebid {
     requiredNamedGraphs: string[];
 }
 
@@ -97,6 +101,20 @@ function parseRequiredNamedGraphs(input: string): NegotiationResponse {
 
     return {
         negotiationWebId,
+        requiredNamedGraphs
+    }
+}
+
+function parseRequiredNamedGraphsWithoutWebid(input: string): NegotiationResponseWithoutWebid {
+    const parsedResponse = JSON.parse(input);
+
+    const { requiredNamedGraphs } = parsedResponse;
+
+    if (!Array.isArray(requiredNamedGraphs) || requiredNamedGraphs.some((ng) => typeof ng !== 'string')) {
+        throw new Error('No required named graphs found');
+    }
+
+    return {
         requiredNamedGraphs
     }
 }
@@ -144,24 +162,24 @@ async function continueProcess(processId: string) {
     // TODO(IMPORTANT!): Ground the query in relevant system information such as the current
     // time
     const question = 'Consider the following prompt:\n' +
-    '---\n' +
+    '-'.repeat(100) + '\n' +
     memory[processId].prompt + '\n' +
-    '---\n' +
+    '-'.repeat(100) + '\n' +
     `You are representing a user with the WebId <${webIdString}>\n` +
     // 'Here is their data they have chosen to disclose' +
     // '---\n' +
     // data + '\n' +
     // '---\n' +
-    `Using the data provided in the following message, please formulate a question to ask an LLM agent representing <${negotiationWebId}> in order to achieve the outcome\n` +
+    // `Using the data provided in the following message, please formulate a question to ask an LLM agent representing <${negotiationWebId}> in order to achieve the outcome\n` +
+    `Using the data provided below, please formulate a question to ask an LLM agent representing <${negotiationWebId}> in order to achieve the outcome\n` +
     'expressed in the prompt. The message you send should include any data that will be needed for the agent to answer the prompt.\n' +
-    'Wher possible you should use the attached data to make the question as detailed, and actionable as possible\n' +
-    `Please do not include any other text in your other than what should be forwarded to the LLM agent representing <${negotiationWebId}>.\n`;
+    'Where possible you should use the attached data to make the question as detailed, and actionable as possible\n' +
+    `Please do not include any other text in your other than what should be forwarded to the LLM agent representing <${negotiationWebId}>.\n` +
+    '-'.repeat(100) + '\n' +
+    data + '\n' +
+    '-'.repeat(100) + '\n';
 
-    const ngText = await model.invoke([
-        question,
-        data
-    ]);
-
+    const { content: ngText } = await model.invoke(question);
     if (typeof ngText !== 'string') {
         throw new Error('No negotiation response found');
     }
@@ -179,8 +197,11 @@ async function continueProcess(processId: string) {
     return postDataset(webid.conversationalAgent['@id'], new Store([
         ...allRelevantData,
         // TODO: Add in the correct modelling 
-        quad(namedNode(webIdString), namedNode('http://example.org/message'), literal(question)),
+        quad(namedNode(webIdString), namedNode('http://example.org/message'), literal(ngText)),
     ]))
+    // FIXME: We should reach a point where after this post we don't need to retain context of
+    // the current conversation, and any context that is required is sent back by the agent we are
+    // conversing with
 }
 
 app.post('/agent', async (req, res) => {
@@ -190,6 +211,39 @@ app.post('/agent', async (req, res) => {
         return res.status(400).send('Invalid request, expected a dataset to be posted');
     }
     console.log(...dataset);
+    const message = [...dataset.match(null, namedNode('http://example.org/message'), null, null)];
+
+    if (message.length !== 1) {
+        return res.status(400).send('Invalid request, expected exactly one message to be posted');
+    }
+
+    res.status(200).send('Message Recieved').end();
+
+    dataset.delete(message[0]);
+
+    const question = 'You are an agent representing the user with WebId <' + webIdString + '>.\n' +
+    'You have received a message from another agent representing the user <' + message[0].subject.value + '>.\n' +
+    'Here is the data that the agent with WebId <' + webIdString + '> has sent you:\n' +
+    '-'.repeat(100) + '\n' +
+    new Writer({ format: 'trig' }).quadsToString([...dataset]) + '\n' +
+    '-'.repeat(100) + '\n' + 
+    'Here is the data that the user you are representing (<' + webIdString + '>) has\n' +
+    '-'.repeat(100) + '\n' +
+    await userDataTrig + '\n' +
+    '-'.repeat(100) + '\n' + 
+    'Is any information from the user you are representing (<' + webIdString + '>) required to answer the message?\n' +
+    'If so, please return a JSON object containing exactly the smallest set of named graphs which are required to answer this question.\n' +
+    'The JSON object should take the form `{ requiredNamedGraphs: /* array of named graphs needed to answer the query */ }`\n' +
+    'If no information is required from the user you are representing, please return an empty array.\n' +
+    'I want to parse this array directly so please do not include anything else in the response.\n'
+
+    const { content: ngText } = await model.invoke(question);
+    if (typeof ngText !== 'string') {
+        throw new Error('No negotiation response found');
+    }
+
+    const { requiredNamedGraphs } = parseRequiredNamedGraphsWithoutWebid(ngText);
+    console.log('The named graphs required to answer the agent query are:', requiredNamedGraphs);
 });
 
 app.post('/', async (req, res) => {
@@ -242,13 +296,12 @@ app.post('/', async (req, res) => {
         'The JSON object should take the form `{ negotiationWebId: /* string webId of who to negotiate with */, requiredNamedGraphs: /* array of named graphs needed to answer the query */ }`\n' +
         // TODO: Include something like this when we are trying to generalise away from the 1-1 negotiation case
         // `If there is no WebId found that is related to <${webIdString}> via <http://schema.org/knows> and can provide the information to answer the prompt, please return an empty string for negotiationWebId.` +
-        'I want to parse this array directly so please do not include anything else in the response.\n';
+        'I want to parse this array directly so please do not include anything else in the response.\n' +
+        '-'.repeat(100) + '\n' +
+        await userDataTrig + '\n' +
+        '-'.repeat(100) + '\n';
 
-        const ngText = await model.invoke([
-            question,
-            await userDataTrig
-        ]);
-
+        const { content: ngText } = await model.invoke(question);
         if (typeof ngText !== 'string') {
             throw new Error('No negotiation response found');
         }
@@ -267,24 +320,8 @@ app.post('/', async (req, res) => {
         // but it is not necessary that this is the case in the future
 
         // FIXME: Fix the conflated prefixes
-        const userDataStore = await userData;
-        const engine = new QueryEngine();
-        const bindings = await engine.queryBindings(`
-        PREFIX acp: <http://www.w3.org/ns/solid/acp#>
-        PREFIX acl: <http://www.w3.org/ns/auth/acl#>
-
-        SELECT DISTINCT ?o WHERE {
-            ?s
-                acp:grant acl:Read ;  
-                acp:context [
-                  acp:agent <${negotiationWebId}> ;
-                  acp:target ?o ;
-                ] .
-        }`, { sources: [userDataStore] })
-
-        const allowedNamedGraphs = await bindings.map((binding) => binding.get('?o')!.value).toArray()
-        memory[processId].permittedDocuments = requiredNamedGraphs.filter((ng) => allowedNamedGraphs.includes(ng));
-        const requestNamedGraphs = requiredNamedGraphs.filter((ng) => !allowedNamedGraphs.includes(ng));
+        const { permittedDocuments, requestNamedGraphs } = await getDocumentStates(negotiationWebId, requiredNamedGraphs);
+        memory[processId].permittedDocuments = permittedDocuments;
 
 
         // If there is at least one named graph that needs to be requested, then ask our human interface
@@ -374,4 +411,32 @@ app.post('/', async (req, res) => {
 app.listen(port, () => {
     console.log(`<${webIdString}>'s agent listening at http://localhost:${port}`);
 })
+async function getDocumentStates(negotiationWebId: string, requiredNamedGraphs: string[]) {
+    const allowedNamedGraphs = await getAllowedGraphs(negotiationWebId);
+    const permittedDocuments = requiredNamedGraphs.filter((ng) => allowedNamedGraphs.includes(ng));
+    const requestNamedGraphs = requiredNamedGraphs.filter((ng) => !allowedNamedGraphs.includes(ng));
+    return { permittedDocuments, requestNamedGraphs };
+}
 
+async function getAllowedGraphs(negotiationWebId: string) {
+    const userDataStore = await userData;
+    const engine = new QueryEngine();
+    const bindings = await engine.queryBindings(`
+        PREFIX acp: <http://www.w3.org/ns/solid/acp#>
+        PREFIX acl: <http://www.w3.org/ns/auth/acl#>
+
+        SELECT DISTINCT ?o WHERE {
+            ?s
+                acp:grant acl:Read ;  
+                acp:context [
+                  acp:agent <${negotiationWebId}> ;
+                  acp:target ?o ;
+                ] .
+        }`, { sources: [userDataStore] });
+
+    const allowedNamedGraphs = await bindings.map((binding) => {
+        console.log('The binding is:', binding);
+        return binding.get('?o')!.value;
+    }).toArray();
+    return allowedNamedGraphs;
+}
