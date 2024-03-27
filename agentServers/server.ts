@@ -1,6 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { QueryEngine } from "@comunica/query-sparql";
-import { ChatAnthropic } from "@langchain/anthropic";
+import { ChatAnthropic, } from "@langchain/anthropic";
 import { UpstashRedisCache } from "@langchain/community/caches/upstash_redis";
 import { createLdoDataset, getDataset } from '@ldo/ldo';
 import rdfHandler from '@rdfjs/express-handler';
@@ -11,16 +10,13 @@ import * as fs from 'fs';
 import { DataFactory, Store, Writer, Parser as N3Parser } from 'n3';
 import * as path from 'path';
 import { v4 } from 'uuid';
-import { Parser, hideBin } from 'yargs/helpers';
+import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
 import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
 import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
 import { getSubjects, postDataset } from '../utils';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
 const { namedNode, defaultGraph, blankNode, quad, literal } = DataFactory;
-// import path from 'path';
-// import { Lo } from "@langchain/community/caches/";
-// import https from 'https';
 
 const cache = new UpstashRedisCache({
   config: {
@@ -187,9 +183,9 @@ async function continueProcess(processId: string) {
         conclusions + '\n' +
         '-'.repeat(100) + '\n';
 
-        const questions = [question];
+        const questions: ["user" | "assistant", string][]  = [["user", question]];
 
-        const { content: ngText } = await model.invoke([question]);
+        const { content: ngText } = await model.invoke(questions);
         if (typeof ngText !== 'string') {
             throw new Error('No negotiation response found');
         }
@@ -201,12 +197,12 @@ async function continueProcess(processId: string) {
             if (typeof ngText !== 'string') {
                 throw new Error('No negotiation response found');
             }
-            questions.push(ngText);
+            questions.push(["assistant", ngText]);
             try {
                 dataset = new Store(new N3Parser().parse(ngText));
                 break;
             } catch (e) {
-                questions.push(`Unable to parse response, with the error [${e}]. Please try generating the output again.`)
+                questions.push(["user", `Unable to parse response, with the error [${e}]. Please try generating the output again.`])
                 console.warn('Unable to parse response', e);
             }
         }
@@ -219,28 +215,7 @@ async function continueProcess(processId: string) {
         console.log('The response to the prompt is:', ngText, dataset);
         return;
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     // TODO: Implement an escape case when we don't have enough data to continue
     console.log('Continuing process:', processId, memory[processId]);
 
