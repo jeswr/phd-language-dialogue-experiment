@@ -1,0 +1,11 @@
+PREFIX ex: <http://example.org/test#>
+PREFIX acl: <http://www.w3.org/ns/auth/acl#>
+PREFIX acp: <http://www.w3.org/ns/solid/acp#>
+PREFIX schema: <http://schema.org/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+shape ex:EventShape -> schema:ScheduleAction {
+    schema:startTime [1..1] xsd:dateTime ;
+    schema:endTime [1..1] xsd:dateTime ;
+    schema:description [1..1] xsd:string ;
+}

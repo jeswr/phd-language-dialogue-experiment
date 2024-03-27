@@ -4,14 +4,14 @@ import { ChatAnthropic } from "@langchain/anthropic";
 import { UpstashRedisCache } from "@langchain/community/caches/upstash_redis";
 import { createLdoDataset, getDataset } from '@ldo/ldo';
 import rdfHandler from '@rdfjs/express-handler';
-import { DatasetCore } from '@rdfjs/types';
+import { DatasetCore, Quad } from '@rdfjs/types';
 import 'dotenv/config';
 import express from 'express';
 import * as fs from 'fs';
-import { DataFactory, Store, Writer } from 'n3';
+import { DataFactory, Store, Writer, Parser as N3Parser } from 'n3';
 import * as path from 'path';
 import { v4 } from 'uuid';
-import { hideBin } from 'yargs/helpers';
+import { Parser, hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
 import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
 import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
@@ -141,15 +141,27 @@ interface ProcessInformation {
 // storing 
 const memory: Record<string, ProcessInformation> = {};
 
+const conclusions = fs.readFileSync(path.join(process.cwd(), 'shapes', 'conclusions.shaclc'), 'utf-8');
+
+function stripNamedGraphs(quads: Quad[]): Quad[] {
+    return quads.map((quad) => {
+        if (quad.graph.termType === 'DefaultGraph') {
+            return quad;
+        }
+        return DataFactory.quad(quad.subject, quad.predicate, quad.object, defaultGraph());
+    });
+
+}
+
 async function continueProcess(processId: string) {
     // This SHOULD NOT be the exit criteria in the future, it is just a workaround for now
     const { prompt, negotiationWebId, permittedDocuments, negotiatorData, negotiationAgent } = memory[processId];
     if (negotiatorData) {
-        const negotiatorTrig = new Writer({ format: 'trig' }).quadsToString([...negotiatorData]);
+        const negotiatorTrig = new Writer({ format: 'trig' }).quadsToString(stripNamedGraphs([...negotiatorData]));
         if (!permittedDocuments) {
             throw new Error('No permitted documents found');
         }
-        const agentData = new Writer({ format: 'trig' }).quadsToString([...await getUserData(permittedDocuments)]);
+        const agentData = new Writer({ format: 'trig' }).quadsToString(stripNamedGraphs([...await getUserData(permittedDocuments)]));
 
         // By this point we should have all the data we need to answer the prompt
         const question = 'Consider the following prompt:\n' +
@@ -167,13 +179,44 @@ async function continueProcess(processId: string) {
         negotiatorTrig + '\n' +
         '-'.repeat(100) + '\n' +
         'Please formulate an answer to the prompt using the data provided above.\n' +
-        'The message you send should be definitive and not require any follow up from the agent you are negotiating with.\n';
+        'The message you send should be definitive and not require any follow up from the agent you are negotiating with.\n' +
+        'The response should be serialized in text/turtle and should conform to one of the following SHACL shapes.\n' +
+        'This response will be parsed directly as a text/turtle document so do not include anything else in the response\n' +
+        'other than the turtle file contents\n' +
+        '-'.repeat(100) + '\n' +
+        conclusions + '\n' +
+        '-'.repeat(100) + '\n';
 
-        const { content: ngText } = await model.invoke(question);
+        const questions = [question];
+
+        const { content: ngText } = await model.invoke([question]);
         if (typeof ngText !== 'string') {
             throw new Error('No negotiation response found');
         }
-        console.log('The response to the prompt is:', ngText, '\nthe question was\n', question);
+
+        let dataset: DatasetCore | undefined = undefined;
+
+        for (let i = 0; i < 5; i++) {
+            const { content: ngText } = await model.invoke(questions);
+            if (typeof ngText !== 'string') {
+                throw new Error('No negotiation response found');
+            }
+            questions.push(ngText);
+            try {
+                dataset = new Store(new N3Parser().parse(ngText));
+                break;
+            } catch (e) {
+                questions.push(`Unable to parse response, with the error [${e}]. Please try generating the output again.`)
+                console.warn('Unable to parse response', e);
+            }
+        }
+
+        if (!dataset) {
+            throw new Error('Unable to parse response');
+        }
+
+        // const dataset = new Store(new N3Parser().parse(ngText));
+        console.log('The response to the prompt is:', ngText, dataset);
         return;
     }
     
