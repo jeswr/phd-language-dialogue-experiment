@@ -247,10 +247,6 @@ async function continueProcess(processId: string) {
     memory[processId].prompt + '\n' +
     '-'.repeat(100) + '\n' +
     `You are representing a user with the WebId <${webIdString}>\n` +
-    // 'Here is their data they have chosen to disclose' +
-    // '---\n' +
-    // data + '\n' +
-    // '---\n' +
     // `Using the data provided in the following message, please formulate a question to ask an LLM agent representing <${negotiationWebId}> in order to achieve the outcome\n` +
     `Using the data provided below, please formulate a question to ask an LLM agent representing <${negotiationWebId}> in order to achieve the outcome\n` +
     'expressed in the prompt. The message you send should include any data that will be needed for the agent to answer the prompt.\n' +
