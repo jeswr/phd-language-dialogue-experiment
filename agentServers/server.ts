@@ -3,7 +3,7 @@ import express from 'express';
 import rdfHandler from '@rdfjs/express-handler'
 import { DataFactory, Writer, Parser, Store } from 'n3';
 import * as path from 'path';
-const { namedNode, defaultGraph, blankNode } = DataFactory;
+const { namedNode, defaultGraph, blankNode, quad, literal } = DataFactory;
 import 'dotenv/config';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
 import { AccessGrantShapeShapeType, AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
@@ -16,6 +16,25 @@ import { n3reasoner } from "eyereasoner";
 import { Quad, NamedNode } from '@rdfjs/types';
 import { QueryEngine } from "@comunica/query-sparql";
 import { v4 } from 'uuid';
+import { OpenAI } from "@langchain/openai";
+import { ChatAnthropic } from "@langchain/anthropic";
+import { Redis } from "@upstash/redis";
+import { UpstashRedisCache } from "@langchain/community/caches/upstash_redis";
+// import { Lo } from "@langchain/community/caches/";
+import https from 'https';
+
+const client = Redis.fromEnv({
+  agent: new https.Agent({ keepAlive: true }),
+});
+
+const cache = new UpstashRedisCache({ client });
+const model = new ChatAnthropic({
+    cache,
+    modelName: 'claude-3-sonnet-20240229',
+    maxTokens: 4096,
+    temperature: 0,
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
+});
 
 const res = yargs(hideBin(process.argv))
   .options({
@@ -121,6 +140,9 @@ async function continueProcess(processId: string) {
     }
 
     const data = new Writer({ format: 'trig' }).quadsToString([...allRelevantData]);
+
+    // TODO(IMPORTANT!): Ground the query in relevant system information such as the current
+    // time
     const question = 'Consider the following prompt:\n' +
     '---\n' +
     memory[processId].prompt + '\n' +
@@ -130,33 +152,45 @@ async function continueProcess(processId: string) {
     // '---\n' +
     // data + '\n' +
     // '---\n' +
-    `Using the data provided in the following message, please formulate a question to ask an agent representing <${negotiationWebId}> in order to achieve the outcome\n` +
-    'expressed in the prompt. The message you send should include any data that will be needed to answer the prompt.\n' +
-    `Please do not include any other text in your other than what should be forwarded to the agent representing <${negotiationWebId}>.\n`;
+    `Using the data provided in the following message, please formulate a question to ask an LLM agent representing <${negotiationWebId}> in order to achieve the outcome\n` +
+    'expressed in the prompt. The message you send should include any data that will be needed for the agent to answer the prompt.\n' +
+    'Wher possible you should use the attached data to make the question as detailed, and actionable as possible\n' +
+    `Please do not include any other text in your other than what should be forwarded to the LLM agent representing <${negotiationWebId}>.\n`;
 
-    const { content: [{ text: ngText }] } = await anthropic.messages.create({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 4096,
-        temperature: 0,
-        messages: [
-            {
-                role: 'user',
-                content:  [
-                    {
-                        text: question,
-                        type: 'text'
-                    },
-                    {
-                        text: data,
-                        type: 'text'
-                    }
-                ]
-            }
-        ],
-    });
+    const ngText = await model.invoke([
+        question,
+        data
+    ]);
 
-    console.log(ngText);
+    if (typeof ngText !== 'string') {
+        throw new Error('No negotiation response found');
+    }
+
+    const webIdDataset = await dereferenceToStore(negotiationWebId);
+    const webIdLdoDataset = createLdoDataset([...webIdDataset]);
+    const webid = webIdLdoDataset.usingType(WebIdShapeShapeType).fromSubject(negotiationWebId);
+    console.log('The correspondant agent is:', webid.conversationalAgent['@id']);
+    console.log('The question to ask the agent is:', ngText);
+
+    // FIXME: Use a shape here and add the correct modelling for the user, conversational agent
+    // and who is saying what
+    // Also note that the original input prompted is "leaked" in the negotiation so we
+    // need to work out how to allow privacy policies around that information to be set
+    return postDataset(webid.conversationalAgent['@id'], new Store([
+        ...allRelevantData,
+        // TODO: Add in the correct modelling 
+        quad(namedNode(webIdString), namedNode('http://example.org/message'), literal(question)),
+    ]))
 }
+
+app.post('/agent', async (req, res) => {
+    const dataset = await req.dataset?.();
+    console.log('Agent request recieved');
+    if (!dataset) {
+        return res.status(400).send('Invalid request, expected a dataset to be posted');
+    }
+    console.log(...dataset);
+});
 
 app.post('/', async (req, res) => {
     const dataset = await req.dataset?.();
@@ -210,26 +244,14 @@ app.post('/', async (req, res) => {
         // `If there is no WebId found that is related to <${webIdString}> via <http://schema.org/knows> and can provide the information to answer the prompt, please return an empty string for negotiationWebId.` +
         'I want to parse this array directly so please do not include anything else in the response.\n';
 
-        const { content: [{ text: ngText }] } = await anthropic.messages.create({
-            model: 'claude-3-sonnet-20240229',
-            max_tokens: 4096,
-            temperature: 0,
-            messages: [
-                {
-                    role: 'user',
-                    content:  [
-                        {
-                            text: question,
-                            type: 'text'
-                        },
-                        {
-                            text: await userDataTrig,
-                            type: 'text'
-                        }
-                    ]
-                }
-            ],
-        });
+        const ngText = await model.invoke([
+            question,
+            await userDataTrig
+        ]);
+
+        if (typeof ngText !== 'string') {
+            throw new Error('No negotiation response found');
+        }
 
         // FIXME: With Claude 3 sonnet we are often seeing the colleagues graph turn up as well, we should
         // find a way of signalling that we usually don't need to do this.
@@ -261,8 +283,8 @@ app.post('/', async (req, res) => {
         }`, { sources: [userDataStore] })
 
         const allowedNamedGraphs = await bindings.map((binding) => binding.get('?o')!.value).toArray()
-        memory[processId].permittedDocuments = requiredNamedGraphs.filter((ng) => !allowedNamedGraphs.includes(ng));
-        const requestNamedGraphs = requiredNamedGraphs.filter((ng) => allowedNamedGraphs.includes(ng));
+        memory[processId].permittedDocuments = requiredNamedGraphs.filter((ng) => allowedNamedGraphs.includes(ng));
+        const requestNamedGraphs = requiredNamedGraphs.filter((ng) => !allowedNamedGraphs.includes(ng));
 
 
         // If there is at least one named graph that needs to be requested, then ask our human interface
@@ -341,7 +363,7 @@ app.post('/', async (req, res) => {
 
         // Don't leave the client hanging
         res.status(200).send('Message Recieved').end();
-        continueProcess(processId);
+        return continueProcess(processId);
     } catch (e) {
         console.warn('Unable to execute access request action', e);
     }

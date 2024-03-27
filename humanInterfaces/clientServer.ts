@@ -39,6 +39,8 @@ export class ClientServer {
             for (const data of matches(subjects, accessRequestShape)) {
                 this.client.accessFlow(data)
                     .then((response) => {
+                        // TODO: Check if this is sensible
+                        response['@id'] ??= this.agentId;
                         const dataset = getDataset(accessGrantShape.fromJson(response));
                         postDataset(this.server, dataset);
                     })
