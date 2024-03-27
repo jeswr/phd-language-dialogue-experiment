@@ -1,0 +1,1 @@
+const parse = JSON.parse('{ requiredNamedGraphs: ["http://example.org/nigel/events"], description: "To check Nigel's availability for scheduling the meeting." }')

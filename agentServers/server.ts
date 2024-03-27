@@ -1,27 +1,26 @@
 import Anthropic from '@anthropic-ai/sdk';
-import express from 'express';
-import rdfHandler from '@rdfjs/express-handler'
-import { DataFactory, Writer, Parser, Store } from 'n3';
-import * as path from 'path';
-const { namedNode, defaultGraph, blankNode, quad, literal } = DataFactory;
-import 'dotenv/config';
-import { dereferenceToStore } from '../utils/dereferenceToStore';
-import { AccessGrantShapeShapeType, AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
-import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
-import { createLdoDataset, getDataset } from '@ldo/ldo';
-import { getSubjects, postDataset } from '../utils';
-import yargs from 'yargs/yargs';
-import { hideBin } from 'yargs/helpers';
-import { n3reasoner } from "eyereasoner";
-import { Quad, NamedNode } from '@rdfjs/types';
 import { QueryEngine } from "@comunica/query-sparql";
-import { v4 } from 'uuid';
-import { OpenAI } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
-import { Redis } from "@upstash/redis";
 import { UpstashRedisCache } from "@langchain/community/caches/upstash_redis";
+import { createLdoDataset, getDataset } from '@ldo/ldo';
+import rdfHandler from '@rdfjs/express-handler';
+import { DatasetCore } from '@rdfjs/types';
+import 'dotenv/config';
+import express from 'express';
+import * as fs from 'fs';
+import { DataFactory, Store, Writer } from 'n3';
+import * as path from 'path';
+import { v4 } from 'uuid';
+import { hideBin } from 'yargs/helpers';
+import yargs from 'yargs/yargs';
+import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
+import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
+import { getSubjects, postDataset } from '../utils';
+import { dereferenceToStore } from '../utils/dereferenceToStore';
+const { namedNode, defaultGraph, blankNode, quad, literal } = DataFactory;
+// import path from 'path';
 // import { Lo } from "@langchain/community/caches/";
-import https from 'https';
+// import https from 'https';
 
 const cache = new UpstashRedisCache({
   config: {
@@ -81,6 +80,10 @@ interface NegotiationResponse extends NegotiationResponseWithoutWebid {
     negotiationWebId: string;
 }
 
+interface NegotiationResponseWithDescription extends NegotiationResponseWithoutWebid {
+    description?: string;
+}
+
 interface NegotiationResponseWithoutWebid {
     requiredNamedGraphs: string[];
 }
@@ -105,17 +108,24 @@ function parseRequiredNamedGraphs(input: string): NegotiationResponse {
     }
 }
 
-function parseRequiredNamedGraphsWithoutWebid(input: string): NegotiationResponseWithoutWebid {
+function parseRequiredNamedGraphsWithoutWebid(input: string): NegotiationResponseWithDescription {
+    console.log('The input is: [' + input + ']');
+    fs.writeFileSync(path.join(__dirname, 'input.json'), input);
     const parsedResponse = JSON.parse(input);
 
-    const { requiredNamedGraphs } = parsedResponse;
+    const { requiredNamedGraphs, description } = parsedResponse;
 
     if (!Array.isArray(requiredNamedGraphs) || requiredNamedGraphs.some((ng) => typeof ng !== 'string')) {
         throw new Error('No required named graphs found');
     }
 
+    if (typeof description !== 'string' && typeof description !== "undefined") {
+        throw new Error("Description must be a string or undefined");
+    }
+
     return {
-        requiredNamedGraphs
+        requiredNamedGraphs,
+        description
     }
 }
 
@@ -126,6 +136,8 @@ interface ProcessInformation {
     permittedDocuments?: string[];
     negotiationWebId?: string;
     negotiationAgent?: string;
+    negotiatorData?: DatasetCore;
+    callNumber: number;
 }
 
 // This memory storage is a workaround for
@@ -135,6 +147,8 @@ const memory: Record<string, ProcessInformation> = {};
 async function continueProcess(processId: string) {
     // TODO: Implement an escape case when we don't have enough data to continue
     console.log('Continuing process:', processId, memory[processId]);
+
+    memory[processId].callNumber += 1;
 
     const { prompt, negotiationWebId, permittedDocuments } = memory[processId];
     console.log('The prompt is:', prompt, negotiationWebId, permittedDocuments);
@@ -206,11 +220,11 @@ async function continueProcess(processId: string) {
 
 app.post('/agent', async (req, res) => {
     const dataset = await req.dataset?.();
-    console.log('Agent request recieved');
+    // console.log('Agent request recieved');
     if (!dataset) {
         return res.status(400).send('Invalid request, expected a dataset to be posted');
     }
-    console.log(...dataset);
+    // console.log(...dataset);
     const message = [...dataset.match(null, namedNode('http://example.org/message'), null, null)];
 
     if (message.length !== 1) {
@@ -220,9 +234,23 @@ app.post('/agent', async (req, res) => {
     res.status(200).send('Message Recieved').end();
 
     dataset.delete(message[0]);
+    const negotiationWebId = message[0].subject.value;
+
+    // FIXME: Check if every call to /agent should be the start of a new process
+    const processId = v4();
+    memory[processId] = {
+        prompt: message[0].object.value,
+        callNumber: 0,
+        negotiationWebId,
+        negotiatorData: dataset,
+    };
 
     const question = 'You are an agent representing the user with WebId <' + webIdString + '>.\n' +
-    'You have received a message from another agent representing the user <' + message[0].subject.value + '>.\n' +
+    'You have received a message from another agent representing the user <' + negotiationWebId + '>.\n' +
+    'The message is.\n' +
+    '-'.repeat(100) + '\n' +
+    message[0].object.value +
+    '-'.repeat(100) + '\n' + 
     'Here is the data that the agent with WebId <' + webIdString + '> has sent you:\n' +
     '-'.repeat(100) + '\n' +
     new Writer({ format: 'trig' }).quadsToString([...dataset]) + '\n' +
@@ -233,7 +261,10 @@ app.post('/agent', async (req, res) => {
     '-'.repeat(100) + '\n' + 
     'Is any information from the user you are representing (<' + webIdString + '>) required to answer the message?\n' +
     'If so, please return a JSON object containing exactly the smallest set of named graphs which are required to answer this question.\n' +
-    'The JSON object should take the form `{ requiredNamedGraphs: /* array of named graphs needed to answer the query */ }`\n' +
+    'If information is required, please also include a short (maximum 15 word) description of why the information is needed for the purpose of\n' +
+    // For securty / safety this should also include deterministically generated information from the agreed upon
+    'requesting to access the data from the agent you are representing\n' +
+    'The JSON object should take the form `{ \"requiredNamedGraphs\": /* array of named graphs needed to answer the query */, \"description\": /* description of why the information is needed */ }`\n' +
     'If no information is required from the user you are representing, please return an empty array.\n' +
     'I want to parse this array directly so please do not include anything else in the response.\n'
 
@@ -242,8 +273,50 @@ app.post('/agent', async (req, res) => {
         throw new Error('No negotiation response found');
     }
 
-    const { requiredNamedGraphs } = parseRequiredNamedGraphsWithoutWebid(ngText);
+    const { requiredNamedGraphs, description } = parseRequiredNamedGraphsWithoutWebid(ngText);
     console.log('The named graphs required to answer the agent query are:', requiredNamedGraphs);
+
+    //////////////////////// FIXME!!! Remove this copy/pasted code ////////////////////////
+
+    // FIXME: With Claude 3 sonnet we are often seeing the colleagues graph turn up as well, we should
+    // find a way of signalling that we usually don't need to do this.
+    // const { negotiationWebId, requiredNamedGraphs } = parseRequiredNamedGraphs(ngText);
+    // memory[processId].negotiationWebId = negotiationWebId;
+    // console.log('The WebId + named graphs required to answer the user queries are:', { negotiationWebId, requiredNamedGraphs });
+
+    // Handling permissions
+    // We now need to check if the agent representing the user we are negotiating with has permissions
+    // to access the required named graphs, and if not, ask for elevanted access.
+
+    // Note for now we are using named graphs as the scope for permissioning + DToU policies,
+    // but it is not necessary that this is the case in the future
+
+    // FIXME: Fix the conflated prefixes
+    const { permittedDocuments, requestNamedGraphs } = await getDocumentStates(negotiationWebId, requiredNamedGraphs);
+    memory[processId].permittedDocuments = permittedDocuments;
+
+
+    // If there is at least one named graph that needs to be requested, then ask our human interface
+    if (requestNamedGraphs.length > 0) {
+        if (!description) {
+            throw new Error('No description found');
+        }
+        console.log('Requesting access to named graphs:', requestNamedGraphs);
+
+        // There needs to be some kind of internal cleanup when this request fails
+        // in order to stop user tasks lingering in memory
+        await postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(AccessRequestShapeShapeType).fromJson({
+            requestor: {
+                "@id": negotiationWebId
+            },
+            requestedGraphs: requestNamedGraphs,
+            purposeDescription: description,
+            processId: processId
+        })));
+        return;
+    }
+
+    
 });
 
 app.post('/', async (req, res) => {
@@ -268,7 +341,7 @@ app.post('/', async (req, res) => {
         // using an id for each exchange. I imagine this is something we
         // will want to change in the future.
         const processId = v4();
-        memory[processId] = { prompt: text };
+        memory[processId] = { prompt: text, callNumber: 0 };
 
         // Don't leave the client hanging
         res.status(200).send('Message Recieved').end();
@@ -293,7 +366,7 @@ app.post('/', async (req, res) => {
         // FIXME: We should be doing structured reasoning to establish the finite set of parties we can negotiate with and
         // provide them up front
         `The WebId of anyone we negotiate with must be related to <${webIdString}> via the <http://schema.org/knows> predicate.\n` +
-        'The JSON object should take the form `{ negotiationWebId: /* string webId of who to negotiate with */, requiredNamedGraphs: /* array of named graphs needed to answer the query */ }`\n' +
+        'The JSON object should take the form `{ \"negotiationWebId\": /* string webId of who to negotiate with */, \"requiredNamedGraphs\": /* array of named graphs needed to answer the query */ }`\n' +
         // TODO: Include something like this when we are trying to generalise away from the 1-1 negotiation case
         // `If there is no WebId found that is related to <${webIdString}> via <http://schema.org/knows> and can provide the information to answer the prompt, please return an empty string for negotiationWebId.` +
         'I want to parse this array directly so please do not include anything else in the response.\n' +
@@ -435,8 +508,8 @@ async function getAllowedGraphs(negotiationWebId: string) {
         }`, { sources: [userDataStore] });
 
     const allowedNamedGraphs = await bindings.map((binding) => {
-        console.log('The binding is:', binding);
-        return binding.get('?o')!.value;
+        console.log('The binding is:', ...binding.values());
+        return binding.get('o')!.value;
     }).toArray();
     return allowedNamedGraphs;
 }

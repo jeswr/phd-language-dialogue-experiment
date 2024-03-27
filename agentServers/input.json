@@ -1,0 +1,4 @@
+{
+  "requiredNamedGraphs": ["http://example.org/nigel/events"],
+  "description": "To check Nigel's schedule for availability to schedule a meeting."
+}
