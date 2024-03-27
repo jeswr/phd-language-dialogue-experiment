@@ -491,6 +491,8 @@ async function getDocumentStates(negotiationWebId: string, requiredNamedGraphs: 
     return { permittedDocuments, requestNamedGraphs };
 }
 
+// FIXME: Make this evaluate ACLs properly, in particular, we
+// are not including cases such as where the read access is public
 async function getAllowedGraphs(negotiationWebId: string) {
     const userDataStore = await userData;
     const engine = new QueryEngine();
