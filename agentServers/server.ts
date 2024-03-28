@@ -16,7 +16,7 @@ import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageSha
 import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
 import { getSubjects, postDataset } from '../utils';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
-import { EventShapeShapeType, PaymentShapeShapeType } from '../ldo/conclusions.shapeTypes';
+import { EventConfirmationShapeShapeType, EventShapeShapeType, PaymentShapeShapeType } from '../ldo/conclusions.shapeTypes';
 import { shapeFromDataset, shapeMatches } from "../utils/shapeFromDataset";
 import { displayEventShape } from "../humanInterfaces/conclusions";
 import { write } from "@jeswr/pretty-turtle";
@@ -232,23 +232,6 @@ async function continueProcess(processId: string) {
             questions.push(["assistant", ngText]);
             try {
                 dataset = skolemiseDataset(new Store(new N3Parser().parse(ngText)));
-                // const subjects = getSubjects(dataset);
-                // if (subjects.size !== 1) {
-                //     throw new Error('Expected exactly one subject');
-                // }
-                // const subject = [...subjects][0];
-                // if (subject.termType !== 'NamedNode') {
-                //     throw new Error('Expected subject to be a NamedNode');
-                // }
-                // try {
-                //     const shaped = shapeFromDataset(EventShapeShapeType, dataset, subject);
-                //     console.log('Shaped:', shaped);
-                //     break;
-                // } catch (e) {
-                //     questions.push(["user", `Response does not conform to the shapes, the validaiton error was [${e}]. Please try generating the output again.`])
-                //     // Do nothing, not all subjects will match every shape
-                //     console.warn('Unable to validate response', e);
-                // }
                 const errs = [];
                 
                 for (const subject of getSubjects(dataset)) {
@@ -263,6 +246,8 @@ async function continueProcess(processId: string) {
 
                 if (!shaped) {
                     questions.push(["user", `Unable to validate the data against the shapes [${errs.join(', ')}]. Please try generating the output again.`])
+                } else {
+                    break;
                 }
 
                 // break;
@@ -296,6 +281,14 @@ async function continueProcess(processId: string) {
         // }
         console.log('Event:', shaped, displayEventShape(shaped));
 
+        await postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(EventConfirmationShapeShapeType).fromJson({
+            // THIS IS A HACK! We should be able to send blank nodes
+            "@id": "urn:uuid:" + v4(),
+            processId,
+            // TODO: Raise an upstream issue with LDO around the fact that the contents of this shape are not
+            // returned when we do `getDataset`
+            event: shaped,
+        })));
         return;
     }
 
@@ -452,10 +445,13 @@ app.post('/agent', async (req, res) => {
         // There needs to be some kind of internal cleanup when this request fails
         // in order to stop user tasks lingering in memory
         await postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(AccessRequestShapeShapeType).fromJson({
+            // THIS IS A HACK! We should be able to send blank nodes
+            // but currently the shex validation we have requires IRIs
+            "@id": "urn:uuid:" + v4(),
             requestor: {
                 "@id": negotiationWebId
             },
-            requestedGraphs: requestNamedGraphs,
+            requestedGraphs: requestNamedGraphs.map((ng) => ({ "@id": ng })),
             purposeDescription: description,
             processId: processId
         })));
@@ -550,10 +546,13 @@ app.post('/', async (req, res) => {
             // There needs to be some kind of internal cleanup when this request fails
             // in order to stop user tasks lingering in memory
             await postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(AccessRequestShapeShapeType).fromJson({
+                // THIS IS A HACK! We should be able to send blank nodes
+                // but currently the shex validation we have requires IRIs
+                "@id": "urn:uuid:" + v4(),
                 requestor: {
                     "@id": negotiationWebId
                 },
-                requestedGraphs: requestNamedGraphs,
+                requestedGraphs: requestNamedGraphs.map((ng) => ({ "@id": ng })),
                 // purposeDescription: `To execute the request [${text}]`,
                 purposeDescription: text,
                 processId
@@ -592,7 +591,7 @@ app.post('/', async (req, res) => {
 
         memory[processId].permittedDocuments ??= [];
 
-        const { negotiationWebId, permittedDocuments } = memory[processId];
+        const { negotiationWebId } = memory[processId];
         if (!negotiationWebId) {
             throw new Error('No negotiation WebId found');
         }
@@ -607,13 +606,13 @@ app.post('/', async (req, res) => {
                     (await userData).addQuads([
                         DataFactory.quad(bn, namedNode('http://www.w3.org/ns/solid/acp#grant'), namedNode('http://www.w3.org/ns/auth/acl#Read')),
                         DataFactory.quad(bn, namedNode('http://www.w3.org/ns/solid/acp#context'), context),
-                        DataFactory.quad(context, namedNode('http://www.w3.org/ns/solid/acp#target'), namedNode(graph)),
+                        DataFactory.quad(context, namedNode('http://www.w3.org/ns/solid/acp#target'), namedNode(graph['@id'])),
                         DataFactory.quad(context, namedNode('http://www.w3.org/ns/solid/acp#agent'), namedNode(negotiationWebId))
                     ]);
                 }
-                memory[processId].permittedDocuments?.push(...grantedGraphs);
+                memory[processId].permittedDocuments?.push(...grantedGraphs.map((graph) => graph['@id']));
             } else if (modes.some((mode) => mode['@id'] === 'ReadOnce')) {
-                memory[processId].permittedDocuments?.push(...grantedGraphs);
+                memory[processId].permittedDocuments?.push(...grantedGraphs.map((graph) => graph['@id']));
             }
         }
 

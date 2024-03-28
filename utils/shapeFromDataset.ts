@@ -11,7 +11,6 @@ export function shapeFromDataset<T extends LdoBase>(shapeType: ShapeType<T>, dat
         shape: shapeType.shape,
     }]);
     if (validationResult[0].status !== 'conformant') {
-        console.error(subject.value, JSON.stringify(validationResult, null, 2));
         throw new Error(JSON.stringify(validationResult, null, 2));
     }
     return createLdoDataset([...dataset]).usingType(shapeType).fromSubject(subject);

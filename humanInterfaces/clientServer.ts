@@ -5,6 +5,9 @@ import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageSha
 import { getSubjects, postDataset } from "../utils";
 import { matches } from "../utils/matches";
 import { ClientInterface } from "./clientInterface";
+import { ConfirmationShapeShapeType, EventConfirmationShapeShapeType, EventShapeShapeType } from "../ldo/conclusions.shapeTypes";
+import { shapeMatches } from "../utils/shapeFromDataset";
+import { write } from "@jeswr/pretty-turtle";
 
 export class ClientServer {
     private readonly app: express.Express;
@@ -28,20 +31,37 @@ export class ClientServer {
                 return res.status(400).send('Invalid request');
             }
 
+            console.log(await write([...dataset]));
+
             const ldoDataset = createLdoDataset([...dataset]);
             const subjects = getSubjects(ldoDataset);
             
             // FIXME: Generalise this
-            const accessRequestShape = ldoDataset.usingType(AccessRequestShapeShapeType);
+            // const accessRequestShape = ldoDataset.usingType(AccessRequestShapeShapeType);
             // IMPORTANT: We don't actually care about the input data when constructing
             // the grant response so I'm not quite sure what's going on here
             const accessGrantShape = ldoDataset.usingType(AccessGrantsShapeShapeType);
-            for (const data of matches(subjects, accessRequestShape)) {
+            for (const data of shapeMatches(AccessRequestShapeShapeType, dataset)) {
                 this.client.accessFlow(data)
                     .then((response) => {
                         // TODO: Check if this is sensible
                         response['@id'] ??= this.agentId;
                         const dataset = getDataset(accessGrantShape.fromJson(response));
+                        postDataset(this.server, dataset);
+                    })
+                    .catch(console.error);
+            }
+
+            // const eventConfirmationShape = ldoDataset.usingType(EventConfirmationShapeShapeType);
+            // IMPORTANT: We don't actually care about the input data when constructing
+            // the grant response so I'm not quite sure what's going on here
+            const confirmationShape = ldoDataset.usingType(ConfirmationShapeShapeType);
+            for (const data of shapeMatches(EventConfirmationShapeShapeType, dataset)) {
+                this.client.eventConfirmation(data)
+                    .then((response) => {
+                        // TODO: Check if this is sensible
+                        response['@id'] ??= this.agentId;
+                        const dataset = getDataset(confirmationShape.fromJson(response));
                         postDataset(this.server, dataset);
                     })
                     .catch(console.error);

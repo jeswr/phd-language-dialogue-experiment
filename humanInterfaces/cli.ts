@@ -138,7 +138,7 @@ export class CliInterface implements ClientInterface {
         }
 
         const permissions = await this.select({
-            message: `In order to [${req.purposeDescription}] do you consent to provide <${req.requestor['@id']}> with access to the following data [${req.requestedGraphs.join(', ')}]`,
+            message: `In order to [${req.purposeDescription}] do you consent to provide <${req.requestor['@id']}> with access to the following data [${req.requestedGraphs.map(graph => graph['@id']).join(', ')}]`,
             choices: choices,
         });
 
