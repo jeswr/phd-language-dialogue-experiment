@@ -1,7 +1,7 @@
 import { QueryEngine } from "@comunica/query-sparql";
 import { ChatAnthropic, } from "@langchain/anthropic";
 import { UpstashRedisCache } from "@langchain/community/caches/upstash_redis";
-import { createLdoDataset, getDataset } from '@ldo/ldo';
+import { ShapeType, createLdoDataset, getDataset } from '@ldo/ldo';
 import rdfHandler from '@rdfjs/express-handler';
 import { DatasetCore, Quad } from '@rdfjs/types';
 import 'dotenv/config';
@@ -21,9 +21,34 @@ import { shapeFromDataset, shapeMatches } from "../utils/shapeFromDataset";
 import { displayEventShape } from "../humanInterfaces/conclusions";
 import { write } from "@jeswr/pretty-turtle";
 import { skolemiseDataset } from "../utils/skolemize";
+import { Generation } from "@langchain/core/outputs";
+import md5 from 'md5';
+import { EventShape } from "../ldo/conclusions.typings";
+
 const { namedNode, defaultGraph, blankNode, quad, literal } = DataFactory;
 
-const cache = new UpstashRedisCache({
+class HookedCache extends UpstashRedisCache {
+    async lookup(prompt: string, llmKey: string): Promise<Generation[] | null> {
+        const res = await super.lookup(prompt, llmKey);
+        // console.log('The response is:', res);
+        // throw new Error('Method not implemented.');
+        const json = JSON.stringify({ prompt, llmKey }, null, 2);
+        const loc = path.join(__dirname, '..', 'prompts', md5(json) + '.json')
+        if (!fs.existsSync(loc)) {
+            fs.writeFileSync(loc, json);
+        } else if (JSON.parse(fs.readFileSync(loc, 'utf-8')).response) {
+            const res = JSON.parse(fs.readFileSync(loc, 'utf-8')).response;
+            // @ts-ignore
+            return [{text:  res, message: { content: res } }];
+        }
+        // if (res) {
+        //     return res;
+        // }
+        throw new Error('Method not implemented.');
+    }
+}
+
+const cache = new HookedCache({
   config: {
     url: process.env.UPSTASH_REDIS_REST_URL!,
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
@@ -31,7 +56,8 @@ const cache = new UpstashRedisCache({
 });
 const model = new ChatAnthropic({
     cache,
-    modelName: 'claude-3-sonnet-20240229',
+    // modelName: 'claude-3-sonnet-20240229',
+    modelName: 'claude-3-opus-20240229-man',
     maxTokens: 4096,
     temperature: 0,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
@@ -196,6 +222,7 @@ async function continueProcess(processId: string) {
         }
 
         let dataset: DatasetCore | undefined = undefined;
+        let shaped: EventShape | undefined = undefined;
 
         for (let i = 0; i < 5; i++) {
             const { content: ngText } = await model.invoke(questions);
@@ -205,31 +232,39 @@ async function continueProcess(processId: string) {
             questions.push(["assistant", ngText]);
             try {
                 dataset = skolemiseDataset(new Store(new N3Parser().parse(ngText)));
-                const subjects = getSubjects(dataset);
-                if (subjects.size !== 1) {
-                    throw new Error('Expected exactly one subject');
-                }
-                const subject = [...subjects][0];
-                if (subject.termType !== 'NamedNode') {
-                    throw new Error('Expected subject to be a NamedNode');
-                }
-                try {
-                    const shaped = shapeFromDataset(EventShapeShapeType, dataset, subject);
-                    console.log('Shaped:', shaped);
-                    break;
-                } catch (e) {
-                    questions.push(["user", `Response does not conform to the shapes, the validaiton error was [${e}]. Please try generating the output again.`])
-                    // Do nothing, not all subjects will match every shape
-                    console.warn('Unable to validate response', e);
-                }
-                
-                // for (const subject of getSubjects(dataset)) {
-                //     try {
-                //         shapeFromDataset(EventShapeShapeType, dataset, subject);
-                //     } catch (e) {
-                //         // Do nothing, not all subjects will match every shape
-                //     }
+                // const subjects = getSubjects(dataset);
+                // if (subjects.size !== 1) {
+                //     throw new Error('Expected exactly one subject');
                 // }
+                // const subject = [...subjects][0];
+                // if (subject.termType !== 'NamedNode') {
+                //     throw new Error('Expected subject to be a NamedNode');
+                // }
+                // try {
+                //     const shaped = shapeFromDataset(EventShapeShapeType, dataset, subject);
+                //     console.log('Shaped:', shaped);
+                //     break;
+                // } catch (e) {
+                //     questions.push(["user", `Response does not conform to the shapes, the validaiton error was [${e}]. Please try generating the output again.`])
+                //     // Do nothing, not all subjects will match every shape
+                //     console.warn('Unable to validate response', e);
+                // }
+                const errs = [];
+                
+                for (const subject of getSubjects(dataset)) {
+                    try {
+                        shaped = shapeFromDataset(EventShapeShapeType, dataset, subject);
+                        break;
+                    } catch (e) {
+                        errs.push(e);
+                        // Do nothing, not all subjects will match every shape
+                    }
+                }
+
+                if (!shaped) {
+                    questions.push(["user", `Unable to validate the data against the shapes [${errs.join(', ')}]. Please try generating the output again.`])
+                }
+
                 // break;
             } catch (e) {
                 questions.push(["user", `Unable to parse response, with the error [${e}]. Please try generating the output again.`])
@@ -237,7 +272,8 @@ async function continueProcess(processId: string) {
             }
         }
 
-        if (!dataset) {
+        if (!dataset || !shaped) {
+            console.warn('Unable to parse response');
             throw new Error('Unable to parse response');
         }
 
@@ -255,9 +291,10 @@ async function continueProcess(processId: string) {
         console.log('Done', await write([...dataset]));
 
         // Here we are hard coding the rules for the event shape here in JS (for now...)
-        for (const event of shapeMatches(EventShapeShapeType, dataset)) {
-            console.log('Event:', event, displayEventShape(event));
-        }
+        // for (const event of shapeMatches(EventShapeShapeType, dataset)) {
+        //     console.log('Event:', event, displayEventShape(shaped));
+        // }
+        console.log('Event:', shaped, displayEventShape(shaped));
 
         return;
     }
@@ -360,7 +397,7 @@ app.post('/agent', async (req, res) => {
     '-'.repeat(100) + '\n' +
     message[0].object.value +
     '-'.repeat(100) + '\n' + 
-    'Here is the data that the agent with WebId <' + webIdString + '> has sent you:\n' +
+    'Here is the data that the agent with WebId <' + negotiationWebId + '> has sent you:\n' +
     '-'.repeat(100) + '\n' +
     new Writer({ format: 'trig' }).quadsToString([...dataset]) + '\n' +
     '-'.repeat(100) + '\n' + 

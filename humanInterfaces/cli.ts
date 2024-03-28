@@ -2,6 +2,8 @@ import { input, select } from '@inquirer/prompts';
 import { AccessGrantsShape, AccessRequestShape, UserMessage } from '../ldo/accessRequest.typings';
 import { ClientInterface } from './clientInterface';
 import EventEmitter from 'events';
+import { ConfirmationShape, EventConfirmationShape } from '../ldo/conclusions.typings';
+import { displayEventShape } from './conclusions';
 
 // const defaultInput = () => input({ message: "Let me know if there is anything I can do for you." });
 const defaultInput = () => input({
@@ -85,6 +87,27 @@ export class CliInterface implements ClientInterface {
         const answer = await (this.currentAction as CancelablePromise<T>);
         this.returnBaton();
         return answer;
+    }
+    
+    async eventConfirmation(shape: EventConfirmationShape): Promise<ConfirmationShape> {
+        const description = displayEventShape(shape.event);
+        const response = await this.select({
+            message: description,
+            choices: [
+                {
+                    value: true,
+                    name: "Yes",
+                },
+                {
+                    value: false,
+                    name: "No",
+                },
+            ],
+        });
+        return {
+            confirm: response,
+            processId: shape.processId,
+        };
     }
 
     async accessFlow(req: AccessRequestShape): Promise<AccessGrantsShape> {

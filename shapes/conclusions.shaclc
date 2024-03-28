@@ -16,3 +16,13 @@ shape ex:PaymentShape -> gr:PaymentMethod {
     gr:hasCurrencyValue [1..1] xsd:float .
     gr:hasCurrency [1..1] xsd:string .
 }
+
+shape ex:EventConfirmationShape -> schema:ScheduleAction {
+    ex:event [1..1] @ex:EventShape .
+    ex:processId [1..1] xsd:string .
+}
+
+shape ex:ConfirmationShape {
+    ex:confirm [1..1] xsd:boolean .
+    ex:processId [1..1] xsd:string .
+}
