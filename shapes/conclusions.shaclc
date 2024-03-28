@@ -9,6 +9,7 @@ shape ex:EventShape -> schema:ScheduleAction {
     schema:startTime [1..1] xsd:dateTime .
     schema:endTime [1..1] xsd:dateTime .
     schema:description [1..1] xsd:string .
+    schema:participant IRI [1..*] .
 }
 
 shape ex:PaymentShape -> gr:PaymentMethod {
