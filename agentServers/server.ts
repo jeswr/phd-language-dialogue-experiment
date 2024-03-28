@@ -9,7 +9,14 @@ import express from 'express';
 import * as fs from 'fs';
 import { DataFactory, Store, Writer, Parser as N3Parser } from 'n3';
 import * as path from 'path';
-import { v4 } from 'uuid';
+// import { v4 } from 'uuid';
+
+let i = 0;
+// Making this deterministic improves query cachability
+function v4() {
+    return '7b8fd230-0d67-4c7b-aa35-a94995ed4268:' + (i++);
+}
+
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
 import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
@@ -239,6 +246,7 @@ async function continueProcess(processId: string) {
                         shaped = shapeFromDataset(EventShapeShapeType, dataset, subject);
                         break;
                     } catch (e) {
+                        console.warn('Unable to match shape', e);
                         errs.push(e);
                         // Do nothing, not all subjects will match every shape
                     }
@@ -281,14 +289,18 @@ async function continueProcess(processId: string) {
         // }
         console.log('Event:', shaped, displayEventShape(shaped));
 
-        await postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(EventConfirmationShapeShapeType).fromJson({
+        const d1 = getDataset(createLdoDataset([]).usingType(EventConfirmationShapeShapeType).fromJson({
             // THIS IS A HACK! We should be able to send blank nodes
             "@id": "urn:uuid:" + v4(),
             processId,
             // TODO: Raise an upstream issue with LDO around the fact that the contents of this shape are not
             // returned when we do `getDataset`
             event: shaped,
-        })));
+        }))
+
+        const d2 = getDataset(createLdoDataset([]).usingType(EventShapeShapeType).fromJson(shaped))
+
+        await postDataset(interfaceServer, new Store([...d1, ...d2]));
         return;
     }
 
