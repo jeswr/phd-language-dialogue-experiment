@@ -1,10 +1,10 @@
 import { createLdoDataset, getDataset } from "@ldo/ldo";
 import rdfHandler from '@rdfjs/express-handler';
 import express from 'express';
-import { AccessRequestShapeShapeType, AccessGrantsShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
+import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
 import { getSubjects, postDataset } from "../utils";
-import { ClientInterface } from "./clientInterface";
 import { matches } from "../utils/matches";
+import { ClientInterface } from "./clientInterface";
 
 export class ClientServer {
     private readonly app: express.Express;

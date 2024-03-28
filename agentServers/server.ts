@@ -16,6 +16,11 @@ import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageSha
 import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
 import { getSubjects, postDataset } from '../utils';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
+import { EventShapeShapeType, PaymentShapeShapeType } from '../ldo/conclusions.shapeTypes';
+import { shapeFromDataset, shapeMatches } from "../utils/shapeFromDataset";
+import { displayEventShape } from "../humanInterfaces/conclusions";
+import { write } from "@jeswr/pretty-turtle";
+import { skolemiseDataset } from "../utils/skolemize";
 const { namedNode, defaultGraph, blankNode, quad, literal } = DataFactory;
 
 const cache = new UpstashRedisCache({
@@ -199,8 +204,33 @@ async function continueProcess(processId: string) {
             }
             questions.push(["assistant", ngText]);
             try {
-                dataset = new Store(new N3Parser().parse(ngText));
-                break;
+                dataset = skolemiseDataset(new Store(new N3Parser().parse(ngText)));
+                const subjects = getSubjects(dataset);
+                if (subjects.size !== 1) {
+                    throw new Error('Expected exactly one subject');
+                }
+                const subject = [...subjects][0];
+                if (subject.termType !== 'NamedNode') {
+                    throw new Error('Expected subject to be a NamedNode');
+                }
+                try {
+                    const shaped = shapeFromDataset(EventShapeShapeType, dataset, subject);
+                    console.log('Shaped:', shaped);
+                    break;
+                } catch (e) {
+                    questions.push(["user", `Response does not conform to the shapes, the validaiton error was [${e}]. Please try generating the output again.`])
+                    // Do nothing, not all subjects will match every shape
+                    console.warn('Unable to validate response', e);
+                }
+                
+                // for (const subject of getSubjects(dataset)) {
+                //     try {
+                //         shapeFromDataset(EventShapeShapeType, dataset, subject);
+                //     } catch (e) {
+                //         // Do nothing, not all subjects will match every shape
+                //     }
+                // }
+                // break;
             } catch (e) {
                 questions.push(["user", `Unable to parse response, with the error [${e}]. Please try generating the output again.`])
                 console.warn('Unable to parse response', e);
@@ -212,7 +242,23 @@ async function continueProcess(processId: string) {
         }
 
         // const dataset = new Store(new N3Parser().parse(ngText));
-        console.log('The response to the prompt is:', ngText, dataset);
+        // console.log('The response to the prompt is:', ngText, dataset);
+
+
+        // This is where we need rules in order to say things like
+        // "in order to commit to an action of this shape, we first need to have a user confirm using x method"
+        // long term this should probably be all rules based rather than shapes based
+        // but it may be possible to convert the shapes to rules
+
+        // HACK! Skolemise the dataset because the validation library
+        // expects namedNodes as input
+        console.log('Done', await write([...dataset]));
+
+        // Here we are hard coding the rules for the event shape here in JS (for now...)
+        for (const event of shapeMatches(EventShapeShapeType, dataset)) {
+            console.log('Event:', event, displayEventShape(event));
+        }
+
         return;
     }
 

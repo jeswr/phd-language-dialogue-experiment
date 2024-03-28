@@ -1,4 +1,3 @@
-import { write } from '@jeswr/pretty-turtle';
 import { DatasetCore } from '@rdfjs/types';
 import { Writer } from 'n3';
 
