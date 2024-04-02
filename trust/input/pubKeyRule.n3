@@ -6,15 +6,18 @@
 @prefix pack: <https://example.org/ns/package#> .
 
 {
-    # if we get an offer 
-    ?id a as:Offer ;
-        as:actor ?actor .
+    ?sign sign:hasContentSignature ?o .
+
+    ?o
+        sign:issuer ?issuer ;
+        pack:content ?content ;
+        sign:proofValue ?value .
 }
 =>
 {
     []
         a fno:Execution ;
         fno:executes ex:publicKeyHandler ;
-        ex:to <http://httpbin.org/post> ;
+        sign:issuer ?content ;
         ex:actor ?actor .
 }.

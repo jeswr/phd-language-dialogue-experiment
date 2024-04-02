@@ -1,14 +1,35 @@
-import { PolicyPlugin, IPolicyType, DemoPlugin, makeComponentsManager, EyeJsReasoner, executePolicies, parseAsN3Store, readText, EyeReasoner } from 'koreografeye';
+import { PolicyPlugin, IPolicyType, DemoPlugin, makeComponentsManager, EyeJsReasoner, executePolicies, renameSubjectInGraph, parseAsN3Store, readText, EyeReasoner } from 'koreografeye';
 import * as N3 from 'n3';
 import * as path from 'path';
 import { write } from "@jeswr/pretty-turtle";
 
+function parseTtl(inputData: string): N3.Store {
+    const parser = new N3.Parser({
+        format: 'text/turtle-star',
+    });
+    return new N3.Store(parser.parse(inputData));
+}
+
 async function main() {
     const inputData  = './input/demo.jsonld';
-    const inputRules = './input/demo.n3';
+    const inputRules = './input/pubKeyRule.n3';
 
     // Read the input graph as an N3 store
-    const store  = await parseAsN3Store(inputData); 
+    // const store  = await parseAsN3Store(inputData); 
+    const store = parseTtl(`
+    @prefix ex:   <http://example.org/> .
+    @prefix as:   <https://www.w3.org/ns/activitystreams#> .
+    @prefix pol:  <https://www.example.org/ns/policy#> .
+    @prefix fno:  <https://w3id.org/function/ontology#> .
+    @prefix sign: <https://example.org/ns/signature#> .
+    @prefix pack: <https://example.org/ns/package#> .
+
+    ex:1 sign:hasContentSignature [
+        sign:issuer ex:issuer ;
+        pack:content <<ex:s ex:p ex:o>> ;
+        sign:proofValue "hello world" ;
+    ] .
+    `)
     // Read the N3 rules as an array of strings
     const rules  = [readText(inputRules)]; 
 

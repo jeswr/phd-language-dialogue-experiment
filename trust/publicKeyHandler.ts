@@ -1,6 +1,7 @@
-import { PolicyPlugin, IPolicyType, DemoPlugin, makeComponentsManager } from 'koreografeye';
+import { PolicyPlugin, IPolicyType } from 'koreografeye';
 import * as N3 from 'n3';
 import { promisifyEventEmitter } from 'event-emitter-promisify';
+const { quad, blankNode, literal, namedNode } = N3.DataFactory;
 
 export abstract class HookInHandler extends PolicyPlugin {   
     constructor() {
@@ -26,6 +27,7 @@ export class PublicKeyHandler extends HookInHandler {
     }
 
     async run(policy: IPolicyType) {
-        return [N3.DataFactory.quad(N3.DataFactory.blankNode(), N3.DataFactory.namedNode('http://example.org/hasPublicKey'), N3.DataFactory.literal('true'))];
+        console.log("PublicKeyHandler executing", policy.node, policy.args);
+        return [quad(blankNode(), namedNode('http://example.org/hasPublicKey'), literal('true', namedNode('http://www.w3.org/2001/XMLSchema#boolean')))];
     }
 }
