@@ -1,0 +1,15 @@
+{
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://purl.org/coar/notify"
+    ],
+    "id": "urn:uuid:0370c0fb-bb78-4a9b-87f5-bed307a509dd",
+    "type": "Offer",
+    "actor": {
+      "id": "https://mypod.org/profile/card#me",
+      "name": "Freddy Test",
+      "type": "Person"
+    },
+    "object": "https://research-organisation.org/repository/preprint/201203/421/"
+  }
+  

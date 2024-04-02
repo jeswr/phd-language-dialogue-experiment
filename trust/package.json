@@ -8,7 +8,7 @@
     "build:components": "componentsjs-generator -s ./dist",
     "build": "tsc && npm run build:components",
     "init": "tsc --init",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "ts-node trust.ts"
   },
   "author": "",
   "license": "MIT",
@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "componentsjs": "^6.0.1",
+    "event-emitter-promisify": "^1.1.0",
     "typescript": "^5.4.3"
   },
   "description": ""

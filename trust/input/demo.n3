@@ -1,0 +1,19 @@
+@prefix ex:   <http://example.org/> .
+@prefix as:   <https://www.w3.org/ns/activitystreams#> .
+@prefix pol:  <https://www.example.org/ns/policy#> .
+@prefix fno:  <https://w3id.org/function/ontology#> .
+
+{
+    # if we get an offer 
+    ?id a as:Offer .
+    ?id as:actor ?actor .
+}
+=>
+{
+    # Send an accept notification to an LDN inbox
+    ex:MySendNotificationDemoExecution 
+        a fno:Execution ;
+        fno:executes ex:publicKeyHandler ;
+        ex:to <http://httpbin.org/post> ;
+        ex:actor ?actor .
+}.
