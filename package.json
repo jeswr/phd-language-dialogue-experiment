@@ -64,6 +64,7 @@
     "rdf-terms": "^1.11.0",
     "rdf-transform": "^1.2.0",
     "rdf-validate-shacl": "^0.5.3",
+    "rdfjs-c14n": "^3.1.0",
     "readline": "^1.3.0",
     "rxjs": "^7.8.1",
     "shacl-engine": "^0.1.5",

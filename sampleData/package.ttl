@@ -3,10 +3,10 @@
 @prefix : <http://example.org/sample/data/> .
 
 :package1 a pack:Package ;
-  pack:claims <<:a :b :c>>, <<:a :b :c2>>;
-  # Open question: for what we are doing do we need q distinction between something being believed for an exchange and something being asserted for an exchange
+  pack:claims <<:a :b :c>>, <<:a :b :c2>> ;
+  # Open question: for what we are doing do we need a distinction between something being believed for an exchange and something being asserted for an exchange
   # usually explicit
-  pack:assertedBy ... 
-  pack:forExchange ...
+  pack:assertedBy <> ;
+  pack:forExchange <> ;
   # usually implicit
-  pack:believedEnoughForExchange
+  pack:believedEnoughForExchange true .
