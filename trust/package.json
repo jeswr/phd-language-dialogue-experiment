@@ -1,0 +1,23 @@
+{
+  "name": "trust",
+  "version": "1.0.0",
+  "lsd:module": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build:components": "componentsjs-generator -s ./dist",
+    "build": "tsc && npm run build:components",
+    "init": "tsc --init",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "componentsjs-generator": "^4.0.1"
+  },
+  "dependencies": {
+    "componentsjs": "^6.0.1",
+    "typescript": "^5.4.3"
+  },
+  "description": ""
+}

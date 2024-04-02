@@ -48,9 +48,6 @@ class HookedCache extends UpstashRedisCache {
             // @ts-ignore
             return [{text:  res, message: { content: res } }];
         }
-        // if (res) {
-        //     return res;
-        // }
         throw new Error('Method not implemented.');
     }
 }

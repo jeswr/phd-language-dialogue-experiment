@@ -2,11 +2,85 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix : <http://example.org/sample/data/> .
 
+:claimSet a pack:ClaimSet ;
+    pack:claims <<:a :b :c>>, <<:a :b :c2>> .
+
+:claimSet2 a pack:ClaimSet ;
+    pack:claims <<:a1 :b :c>>, <<:a2 :b :c2>> .
+
+
 :package1 a pack:Package ;
-  pack:claims <<:a :b :c>>, <<:a :b :c2>> ;
+  pack:claims :claimSet ;
   # Open question: for what we are doing do we need a distinction between something being believed for an exchange and something being asserted for an exchange
   # usually explicit
   pack:assertedBy <> ;
   pack:forExchange <> ;
   # usually implicit
   pack:believedEnoughForExchange true .
+
+:package2 a pack:Package ;
+  pack:claims :claimSet2 ;
+  pack:provenance ... ;
+  pack:termsOfUse ... .
+
+  # Open question: for what we are doing do we need a distinction between something being believed for an exchange and something being asserted for an exchange
+  # usually explicit
+
+  # In N3 proofs this was simply the :source, however, we can not use that here as we are not dealing with single resources,
+  # and we need to model the relationship between who asserted the claim and the claim itself  
+  #   pack:assertion <> ;
+  #   pack:forExchange <> ;
+  # usually implicit
+  #   pack:believedEnoughForExchange true .
+
+### TODO: Lookup if there is a vocab for relating identity making a claim, to the claim
+:assertion a pack:Assertion ;
+  pack:assertedBy :alice ;
+  pack:provenance [
+    # Source provenance indicates that the data was `fetch`ed from a particular source,
+    # and so all that remains is a proof that the :assertedBy entity controls the source
+    a pack:Source ;
+    pack:source :sourceOwnedByAlice ;
+    pack:proof [
+      a pack:OwnershipProof ;
+        pack:owner :alice ;
+    ] ;
+  ] .
+
+:assertion a pack:Assertion ;
+  pack:assertedBy :alice ;
+  pack:provenance [
+    # Source provenance indicates that the data was `fetch`ed from a particular source,
+    # and so all that remains is a proof that the :assertedBy entity controls the source
+    a pack:Source ;
+    pack:source :sourceOwnedByAlice ;
+    pack:proof [
+      a pack:OwnershipProof ;
+        pack:storageOwnedByWebId :alice ;
+        # pack:owner :alice ;
+        # pack:owner :alice ;
+    ] ;
+  ] .
+
+
+:assertion a pack:Assertion ;
+  pack:assertedBy :alice ;
+  pack:provenance [
+    # Source provenance indicates that the data was `fetch`ed from a particular source,
+    # and so all that remains is a proof that the :assertedBy entity controls the source
+    a pack:Signature ;
+    pack:signature "..." ;
+    pack:pubKey [
+        a pack:PublicKey ;
+        pack:owner :alice ;
+        pack:pubKey "..." ;
+        pack:source [
+            a pack:Source ;
+            pack:source :sourceOwnedByAlice ;
+            pack:proof [
+                a pack:OwnershipProof ;
+                pack:owner :alice ;
+            ] ;
+        ]
+    ]
+  ] .
