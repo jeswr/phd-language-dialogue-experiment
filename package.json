@@ -23,13 +23,16 @@
     "serve:webIds:nigel": "rdf-serve sampleData/webIds/nigel -p 3002",
     "serve:webIds:jun": "rdf-serve sampleData/webIds/jun -p 3001",
     "serve:webIds": "run-p -l serve:webIds:*",
-    "serve": "run-p serve:*"
+    "serve": "run-p serve:*",
+    "secret:set": "gh secret set -f .env"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",
     "@comunica/query-sparql": "^3.0.1",
+    "@gomomento/sdk": "^1.71.0",
+    "@gomomento/sdk-web": "^1.71.0",
     "@inquirer/prompts": "^4.3.0",
     "@jeswr/pretty-turtle": "^1.4.0",
     "@langchain/anthropic": "^0.1.9",
@@ -41,6 +44,7 @@
     "@shexjs/parser": "^1.0.0-alpha.28",
     "@types/shexj": "^2.1.7",
     "@upstash/redis": "^1.29.0",
+    "@upstash/vector": "^1.0.4",
     "commander": "^12.0.0",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
@@ -50,6 +54,7 @@
     "express": "^4.19.2",
     "eyereasoner": "^13.1.0",
     "https": "^1.0.0",
+    "langchain": "^0.1.30",
     "md5": "^2.3.0",
     "n3": "^1.17.2",
     "rdf-dereference": "^2.2.0",

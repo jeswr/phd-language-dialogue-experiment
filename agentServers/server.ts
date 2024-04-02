@@ -13,7 +13,7 @@ import * as path from 'path';
 
 let i = 0;
 // Making this deterministic improves query cachability
-function v4() {
+function v4pho() {
     return '7b8fd230-0d67-4c7b-aa35-a94995ed4268:' + (i++);
 }
 
@@ -23,7 +23,7 @@ import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageSha
 import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
 import { getSubjects, postDataset } from '../utils';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
-import { EventConfirmationShapeShapeType, EventShapeShapeType, PaymentShapeShapeType } from '../ldo/conclusions.shapeTypes';
+import { ConfirmationShapeShapeType, EventConfirmationShapeShapeType, EventShapeShapeType, PaymentShapeShapeType } from '../ldo/conclusions.shapeTypes';
 import { shapeFromDataset, shapeMatches } from "../utils/shapeFromDataset";
 import { displayEventShape } from "../humanInterfaces/conclusions";
 import { write } from "@jeswr/pretty-turtle";
@@ -61,6 +61,7 @@ const cache = new HookedCache({
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
   },
 });
+
 const model = new ChatAnthropic({
     cache,
     // modelName: 'claude-3-sonnet-20240229',
@@ -168,6 +169,7 @@ interface ProcessInformation {
     negotiationWebId?: string;
     negotiationAgent?: string;
     negotiatorData?: DatasetCore;
+    skolemid: number
     callNumber: number;
 }
 
@@ -184,12 +186,11 @@ function stripNamedGraphs(quads: Quad[]): Quad[] {
         }
         return DataFactory.quad(quad.subject, quad.predicate, quad.object, defaultGraph());
     });
-
 }
 
 async function continueProcess(processId: string) {
     // This SHOULD NOT be the exit criteria in the future, it is just a workaround for now
-    const { prompt, negotiationWebId, permittedDocuments, negotiatorData, negotiationAgent } = memory[processId];
+    const { prompt, negotiationWebId, permittedDocuments, negotiatorData } = memory[processId];
     if (negotiatorData) {
         const negotiatorTrig = new Writer({ format: 'trig' }).quadsToString(stripNamedGraphs([...negotiatorData]));
         if (!permittedDocuments) {
@@ -291,7 +292,7 @@ async function continueProcess(processId: string) {
 
         const d1 = getDataset(createLdoDataset([]).usingType(EventConfirmationShapeShapeType).fromJson({
             // THIS IS A HACK! We should be able to send blank nodes
-            "@id": "urn:uuid:" + v4(),
+            "@id": "urn:uuid:" + '7b8fd230-0d67-4c7b-aa35-a94995ed4268:' + (memory[processId].skolemid++),
             processId,
             // TODO: Raise an upstream issue with LDO around the fact that the contents of this shape are not
             // returned when we do `getDataset`
@@ -388,12 +389,13 @@ app.post('/agent', async (req, res) => {
     const negotiationWebId = message[0].subject.value;
 
     // FIXME: Check if every call to /agent should be the start of a new process
-    const processId = v4();
+    const processId = v4pho();
     memory[processId] = {
         prompt: message[0].object.value,
         callNumber: 0,
         negotiationWebId,
         negotiatorData: dataset,
+        skolemid: 0
     };
 
     const question = 'You are an agent representing the user with WebId <' + webIdString + '>.\n' +
@@ -459,7 +461,7 @@ app.post('/agent', async (req, res) => {
         await postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(AccessRequestShapeShapeType).fromJson({
             // THIS IS A HACK! We should be able to send blank nodes
             // but currently the shex validation we have requires IRIs
-            "@id": "urn:uuid:" + v4(),
+            "@id": "urn:uuid:" + '7b8fd230-0d67-4c7b-aa35-a94995ed4268:' + (memory[processId].skolemid++),
             requestor: {
                 "@id": negotiationWebId
             },
@@ -468,9 +470,7 @@ app.post('/agent', async (req, res) => {
             processId: processId
         })));
         return;
-    }
-
-    
+    }    
 });
 
 app.post('/', async (req, res) => {
@@ -480,22 +480,17 @@ app.post('/', async (req, res) => {
         return res.status(400).send('Invalid request, expected a dataset to be posted');
     }
 
-    const ldoDataset = createLdoDataset([...dataset]);
-    const subjects = getSubjects(ldoDataset);
+    console.log('User request recieved', await write([...dataset]));
 
     try {
         // Collecting the user message
-        const { text } = ldoDataset.usingType(UserMessageShapeType).fromSubject(webId);
-
-        if (typeof text !== 'string') {
-            throw new Error('No text found');
-        }
+        const { text } = shapeFromDataset(UserMessageShapeType, dataset, webId);
 
         // Becasue we have more "statically defined" flows for now we are
         // using an id for each exchange. I imagine this is something we
         // will want to change in the future.
-        const processId = v4();
-        memory[processId] = { prompt: text, callNumber: 0 };
+        const processId = v4pho();
+        memory[processId] = { prompt: text, callNumber: 0, skolemid: 0 };
 
         // Don't leave the client hanging
         res.status(200).send('Message Recieved').end();
@@ -560,7 +555,7 @@ app.post('/', async (req, res) => {
             await postDataset(interfaceServer, getDataset(createLdoDataset([]).usingType(AccessRequestShapeShapeType).fromJson({
                 // THIS IS A HACK! We should be able to send blank nodes
                 // but currently the shex validation we have requires IRIs
-                "@id": "urn:uuid:" + v4(),
+                "@id": "urn:uuid:" + '7b8fd230-0d67-4c7b-aa35-a94995ed4268:' + (memory[processId].skolemid++),
                 requestor: {
                     "@id": negotiationWebId
                 },
@@ -586,12 +581,12 @@ app.post('/', async (req, res) => {
 
         return;
     } catch (e) {
-        console.warn('Unable to execute user prompted action', e);
+        console.warn('Unable to execute user prompted action');
     }
 
     try {
         // Collecting the access request response
-        const { grants, processId } = ldoDataset.usingType(AccessGrantsShapeShapeType).fromSubject(webId);
+        const { grants, processId } = shapeFromDataset(AccessGrantsShapeShapeType, dataset, webId);
 
         if (!Array.isArray(grants)) {
             throw new Error('No grants found');
@@ -632,7 +627,19 @@ app.post('/', async (req, res) => {
         res.status(200).send('Message Recieved').end();
         return continueProcess(processId);
     } catch (e) {
-        console.warn('Unable to execute access request action', e);
+        console.warn('Unable to execute access request action');
+    }
+
+    try {
+        // Collecting the access request response
+        const { processId, confirm } = shapeFromDataset(ConfirmationShapeShapeType, dataset, webId);
+        console.log('The event is:', processId, confirm);
+
+        // Don't leave the client hanging
+        res.status(200).send('Message Recieved').end();
+        return;
+    } catch (e) {
+        console.warn('Unable to execute confirmation action');
     }
 
     return res.status(500).send('Unknown error');

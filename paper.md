@@ -57,3 +57,8 @@ Future Work:
 
 How do we let an agent establish whether they are 
 
+---
+
+Another interesting point:
+ - Model training, you need to train with your own data 
+

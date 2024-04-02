@@ -1,0 +1,17 @@
+# https://github.com/jeswr/dialogical-investigation
+# https://github.com/SolidLabResearch/Vienna-prototype/blob/a902b3351c70dc00bb2494cc331f6f21289ad0f5/SolidLib/Interface/ISolidLib.ts#L91
+# GetDataWithTrust https://github.com/SolidLabResearch/Vienna-prototype/blob/a902b3351c70dc00bb2494cc331f6f21289ad0f5/SolidLib/Interface/SolidLib.ts#L142-L195
+@prefix pack: <https://example.org/ns/package#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+pack:assertedBy a rdf:Property ;
+    rdfs:label "assertedBy" ;
+    rdfs:comment "The agent that asserts the statement." ;
+    rdfs:domain rdf:Statement ;
+    rdfs:range rdf:Agent .
+
+pack:policy a rdf:Property ;
+    rdfs:label "policy" ;
+    rdfs:comment "The policy that is used to determine the trustworthiness of the statement." ;
+    rdfs:domain rdf:Statement ;
+    rdfs:range rdf:Policy .

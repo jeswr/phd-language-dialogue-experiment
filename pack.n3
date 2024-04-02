@@ -1,0 +1,39 @@
+() pack:onPackageSurface {
+    << 
+        () pack:onContentSurface {
+            ex:nigel a schema:Person ;
+              ex:naturalLanguageQuestion "Nigel wishes to schedule a 30 min with Jun some time next week" ;
+              schema:name "Nigel Shadbolt" ;
+              schema:hasOccupation [
+                a schema:Occupation ;
+                schema:name "Researcher"
+              ] ;
+              schema:hasSchedule [
+                a schema:ScheduleAction ;
+                schema:startTime "2024-03-20T08:30" ;
+                schema:endTime "2024-03-20T12:00" ;
+                schema:description "Conduct experiments in the laboratory"
+              ], [
+                a schema:ScheduleAction ;
+                schema:startTime "2024-03-20T13:00" ;
+                schema:endTime "2024-03-20T14:30" ;
+                schema:description "Lunch meeting with research collaborators"
+              ] .
+        }
+    >> policy:hasUsagePolicy [
+        a odrl:Agreement ;
+        dc:creator ex:nigel ;
+        dc:description "The Duration-restricted Data Usage policy restricts the usage of the data to a specific period." ;
+        dc:issued "2022-05-19T12:00" ;
+        odrl:permission [
+            odrl:action odrl:use ;
+            odrl:assignee ex:nigel ;
+            odrl:assigner ex:jun ;
+            odrl:constraint [
+                odrl:leftOperand odrl:elapsedTime ;
+                odrl:operator odrl:eq> ;
+                odrl:rightOperand "P3M"^^<http://www.w3.org/2001/XMLSchema#duration> ;
+            ];
+        ];
+    ].
+}.
