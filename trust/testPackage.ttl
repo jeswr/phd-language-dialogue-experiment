@@ -1,0 +1,10 @@
+@prefix ex:   <http://example.org/> .
+@prefix as:   <https://www.w3.org/ns/activitystreams#> .
+@prefix pol:  <https://www.example.org/ns/policy#> .
+@prefix fno:  <https://w3id.org/function/ontology#> .
+@prefix sign: <https://example.org/ns/signature#> .
+@prefix pack: <https://example.org/ns/package#> .
+
+ex:package1 a pack:Package ;
+    pack:hasContent ex:content1 ;
+    pack:hasSignature ex:signature1 .

@@ -1,4 +1,4 @@
-import { PolicyPlugin, IPolicyType, DemoPlugin, makeComponentsManager } from 'koreografeye';
+import { PolicyPlugin, IPolicyType } from 'koreografeye';
 import * as N3 from 'n3';
 
 export class PublicKeyHandler extends PolicyPlugin {   

@@ -12,7 +12,7 @@ const { namedNode, literal, defaultGraph, quad } = DataFactory;
 const shapesDir = './shapes';
 
 // Get all .shaclc files in the shapes directory
-const shaclcFiles = fs.readdirSync(shapesDir).filter(file => path.extname(file) === '.shaclc');
+const shaclcFiles = fs.readdirSync(shapesDir, { recursive: true }).filter(file => path.extname(file) === '.shaclc');
 
 // Convert each .shaclc file to .ttl
 shaclcFiles.forEach(async file => {

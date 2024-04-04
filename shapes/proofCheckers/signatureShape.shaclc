@@ -11,11 +11,5 @@ PREFIX cert: <http://www.w3.org/ns/auth/cert#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 shape ex:WebIdShape -> foaf:Agent {
-    solid:oidcIssuer IRI [0..*] .
-    # This is direct access to Solid storage
-    pim:storage IRI [0..*] .
-    # This is how one discovers a conversational agent
-    # that represents the user
-    ex:conversationalAgent IRI [1..1] .
-    cert:key xsd:string [0..1] .
+    cert:key xsd:string [1..1] .
 }

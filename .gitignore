@@ -4,3 +4,4 @@ dist
 ldo
 shapes/*.shex
 shapes/*.ttl
+trust/components/

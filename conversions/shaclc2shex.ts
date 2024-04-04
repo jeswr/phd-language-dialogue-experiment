@@ -11,12 +11,15 @@ const { namedNode, literal, defaultGraph, quad } = DataFactory;
 const shapesDir = './shapes';
 
 // Get all .shaclc files in the shapes directory
-const shaclcFiles = fs.readdirSync(shapesDir).filter(file => path.extname(file) === '.shaclc');
+
+// https://www.w3.org/ns/shacl-shacl#ShapeShape
+
+const shaclcFiles: string[] = fs.readdirSync(shapesDir, { recursive: true }).filter((file): file is string => typeof file === 'string' && path.extname(file) === '.shaclc');
 
 // Convert each .shaclc file to .ttl
 shaclcFiles.forEach(async file => {
     const shaclcPath = path.join(shapesDir, file);
-    const shexPath = path.join(shapesDir, `${path.basename(file, '.shaclc')}.shex`);
+    const shexPath = path.join(shapesDir, file.replace('.shaclc', '.shex'));
 
     let shapes: Quad[] & { prefixes: Record<string, string> };
 
@@ -100,6 +103,10 @@ shaclcFiles.forEach(async file => {
 
     fs.writeFileSync(shexPath, promise);
 });
+
+async function shaclToShexSchema() {
+  
+}
 
 function writeShexSchema(schema: any, prefixes: Record<string, string>) {
     const shexWriter = new Writer({ prefixes }, {});

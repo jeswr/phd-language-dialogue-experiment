@@ -16,6 +16,21 @@ async function main() {
 
     // Read the input graph as an N3 store
     // const store  = await parseAsN3Store(inputData); 
+    // const store = parseTtl(`
+    // @prefix ex:   <http://example.org/> .
+    // @prefix as:   <https://www.w3.org/ns/activitystreams#> .
+    // @prefix pol:  <https://www.example.org/ns/policy#> .
+    // @prefix fno:  <https://w3id.org/function/ontology#> .
+    // @prefix sign: <https://example.org/ns/signature#> .
+    // @prefix pack: <https://example.org/ns/package#> .
+
+    // ex:1 sign:hasContentSignature [
+    //     sign:issuer ex:issuer ;
+    //     pack:content (<<ex:s ex:p ex:o>> <<ex:s ex:p ex:o2>>) ;
+    //     sign:proofValue "hello world" ;
+    // ] .
+    // `)
+
     const store = parseTtl(`
     @prefix ex:   <http://example.org/> .
     @prefix as:   <https://www.w3.org/ns/activitystreams#> .
@@ -26,7 +41,7 @@ async function main() {
 
     ex:1 sign:hasContentSignature [
         sign:issuer ex:issuer ;
-        pack:content <<ex:s ex:p ex:o>> ;
+        pack:content <<ex:s ex:p ex:o>>, <<ex:s ex:p ex:o2>> ;
         sign:proofValue "hello world" ;
     ] .
     `)

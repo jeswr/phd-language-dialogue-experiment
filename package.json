@@ -6,11 +6,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "interface:cli": "ts-node humanInterfaces/run",
     "build": "tsc",
-    "ldo": "ldo build --input ./shapes --output ./ldo",
+    "ldo": "ldo build --input ./shapes --output ./ldo && ldo build --input ./shapes/proofCheckers --output ./ldo/proofCheckers",
     "shacl2shex": "bash conversions/shacl2shex/convert.sh ./shapes",
     "shc2ttl": "node ./conversions/shaclc2ttl.js",
     "shc2shex": "npm run shc2ttl && npm run shacl2shex",
-    "shapes": "ts-node ./conversions/shaclc2shex && npm run ldo && rm -rf ./shapes/*.ttl && rm -rf ./shapes/*.shex",
+    "shapes": "ts-node ./conversions/shaclc2shex && npm run ldo && rm -rf ./shapes/*.ttl && rm -rf ./shapes/*.shex && rm -rf ./shapes/**/*.ttl && rm -rf ./shapes/**/*.shex",
     "watch:shapes": "nodemon --watch shapes/*.shaclc -x \"npm run shapes\"",
     "watch:tsc": "tsc --watch",
     "watch": "run-p watch:*",
@@ -36,6 +36,7 @@
     "@gomomento/sdk-web": "^1.71.0",
     "@inquirer/prompts": "^4.3.0",
     "@jeswr/pretty-turtle": "^1.4.0",
+    "@jeswr/rdfjs-sign": "^1.0.0",
     "@langchain/anthropic": "^0.1.9",
     "@langchain/community": "^0.0.43",
     "@langchain/openai": "^0.0.23",
@@ -58,7 +59,7 @@
     "koreografeye": "github:eyereasoner/Koreografeye#6bd59d68dbfdb56487876e52f2660545a1dd6879",
     "langchain": "^0.1.30",
     "md5": "^2.3.0",
-    "n3": "^1.17.2",
+    "n3": "github:rdfjs/N3.js#fd6e7f1d5982fa113349a6ad03ad99e52db898d7",
     "rdf-dereference": "^2.2.0",
     "rdf-namespaces": "^1.12.0",
     "rdf-serve": "^1.1.0",
@@ -100,5 +101,8 @@
     "ttab": "^0.8.0",
     "typescript": "^5.4.2",
     "yargs": "^17.7.2"
+  },
+  "overrides": {
+    "n3": "$n3"
   }
 }
