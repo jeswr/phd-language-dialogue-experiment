@@ -216,7 +216,8 @@ async function continueProcess(processId: string) {
         'This response will be parsed directly as a text/turtle document so do not include anything else in the response\n' +
         'other than the turtle file contents\n' +
         '-'.repeat(100) + '\n' +
-        conclusions + '\n' +
+        // Slicing because we don't want the confirmation shapes to be included here
+        conclusions.split('\n').slice(0, 20).join('\n') + '\n' +
         '-'.repeat(100) + '\n';
 
         const questions: ["user" | "assistant", string][]  = [["user", question]];
