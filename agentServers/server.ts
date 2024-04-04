@@ -1,36 +1,34 @@
 import { QueryEngine } from "@comunica/query-sparql";
+import { write } from "@jeswr/pretty-turtle";
 import { ChatAnthropic, } from "@langchain/anthropic";
 import { UpstashRedisCache } from "@langchain/community/caches/upstash_redis";
-import { ShapeType, createLdoDataset, getDataset } from '@ldo/ldo';
+import { Generation } from "@langchain/core/outputs";
+import { createLdoDataset, getDataset } from '@ldo/ldo';
 import rdfHandler from '@rdfjs/express-handler';
 import { DatasetCore, Quad } from '@rdfjs/types';
 import 'dotenv/config';
 import express from 'express';
 import * as fs from 'fs';
-import { DataFactory, Store, Writer, Parser as N3Parser } from 'n3';
+import md5 from 'md5';
+import { DataFactory, Parser as N3Parser, Store, Writer } from 'n3';
 import * as path from 'path';
-// import { v4 } from 'uuid';
+import { hideBin } from 'yargs/helpers';
+import yargs from 'yargs/yargs';
+import { displayEventShape } from "../humanInterfaces/conclusions";
+import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
+import { ConfirmationShapeShapeType, EventConfirmationShapeShapeType, EventShapeShapeType } from '../ldo/conclusions.shapeTypes';
+import { EventShape } from "../ldo/conclusions.typings";
+import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
+import { getSubjects, postDataset } from '../utils';
+import { dereferenceToStore } from '../utils/dereferenceToStore';
+import { shapeFromDataset } from "../utils/shapeFromDataset";
+import { skolemiseDataset } from "../utils/skolemize";
 
 let i = 0;
 // Making this deterministic improves query cachability
 function v4pho() {
     return '7b8fd230-0d67-4c7b-aa35-a94995ed4268:' + (i++);
 }
-
-import { hideBin } from 'yargs/helpers';
-import yargs from 'yargs/yargs';
-import { AccessGrantsShapeShapeType, AccessRequestShapeShapeType, UserMessageShapeType } from "../ldo/accessRequest.shapeTypes";
-import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
-import { getSubjects, postDataset } from '../utils';
-import { dereferenceToStore } from '../utils/dereferenceToStore';
-import { ConfirmationShapeShapeType, EventConfirmationShapeShapeType, EventShapeShapeType, PaymentShapeShapeType } from '../ldo/conclusions.shapeTypes';
-import { shapeFromDataset, shapeMatches } from "../utils/shapeFromDataset";
-import { displayEventShape } from "../humanInterfaces/conclusions";
-import { write } from "@jeswr/pretty-turtle";
-import { skolemiseDataset } from "../utils/skolemize";
-import { Generation } from "@langchain/core/outputs";
-import md5 from 'md5';
-import { EventShape } from "../ldo/conclusions.typings";
 
 const { namedNode, defaultGraph, blankNode, quad, literal } = DataFactory;
 
@@ -166,6 +164,7 @@ interface ProcessInformation {
     negotiationWebId?: string;
     negotiationAgent?: string;
     negotiatorData?: DatasetCore;
+    action?: DatasetCore;
     skolemid: number
     callNumber: number;
 }
@@ -297,9 +296,9 @@ async function continueProcess(processId: string) {
             event: shaped,
         }))
 
-        const d2 = getDataset(createLdoDataset([]).usingType(EventShapeShapeType).fromJson(shaped))
-
-        await postDataset(interfaceServer, new Store([...d1, ...d2]));
+        const d2 = getDataset(createLdoDataset([]).usingType(EventShapeShapeType).fromJson(shaped));
+        memory[processId].action = new Store([...d1, ...d2])
+        await postDataset(interfaceServer, memory[processId].action!);
         return;
     }
 
@@ -358,6 +357,7 @@ async function continueProcess(processId: string) {
     // and who is saying what
     // Also note that the original input prompted is "leaked" in the negotiation so we
     // need to work out how to allow privacy policies around that information to be set
+    memory[processId].negotiationAgent = webid.conversationalAgent['@id'];
     return postDataset(webid.conversationalAgent['@id'], new Store([
         ...allRelevantData,
         // TODO: Add in the correct modelling 
@@ -387,6 +387,8 @@ app.post('/agent', async (req, res) => {
     const negotiationWebId = message[0].subject.value;
 
     // FIXME: Check if every call to /agent should be the start of a new process
+
+    console.log('/agent', req.headers, ...dataset)
     const processId = v4pho();
     memory[processId] = {
         prompt: message[0].object.value,
@@ -473,6 +475,8 @@ app.post('/agent', async (req, res) => {
 
 app.post('/', async (req, res) => {
     const dataset = await req.dataset?.();
+
+    console.log('Agent request recieved', dataset?.size);
 
     if (!dataset) {
         return res.status(400).send('Invalid request, expected a dataset to be posted');
@@ -630,11 +634,29 @@ app.post('/', async (req, res) => {
 
     try {
         // Collecting the access request response
-        const { processId, confirm } = shapeFromDataset(ConfirmationShapeShapeType, dataset, webId);
-        console.log('The event is:', processId, confirm);
+        const { processId, confirm,  } = shapeFromDataset(ConfirmationShapeShapeType, dataset, webId);
+        const { action, negotiationAgent } = memory[processId];
+
+        res.status(200).send('Message Recieved').end();
+
+        console.log('The event is:', processId, confirm, action?.size, negotiationAgent);
+
+        if (confirm && negotiationAgent && action) {
+            console.log('Posting action to:', negotiationAgent);
+            postDataset(negotiationAgent, action);
+        }
+        // console.log('The event is:', processId, confirm);
+        
+
+
+
+
+        // if (action) {
+        //     console.log(...action);
+        // }
 
         // Don't leave the client hanging
-        res.status(200).send('Message Recieved').end();
+        // res.status(200).send('Message Recieved').end();
         return;
     } catch (e) {
         console.warn('Unable to execute confirmation action');
