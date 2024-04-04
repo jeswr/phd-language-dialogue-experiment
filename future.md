@@ -5,3 +5,7 @@ Things to do in the future:
  - Make interactions more "proactive" (i.e. less requesting of elevated permissions to forward data etc.)
 
 <!-- https://www.anthropic.com/news/accenture-aws-anthropic -->
+
+Notes on modelling
+ - Each set of quoted claims can generally be considered to be "unproven" and can
+ be elevated in scope once proven (be it cryptographically, N3 style proof etc.)

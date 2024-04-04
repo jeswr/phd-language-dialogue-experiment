@@ -21,8 +21,9 @@ import { EventShape } from "../ldo/conclusions.typings";
 import { WebIdShapeShapeType } from "../ldo/webId.shapeTypes";
 import { getSubjects, postDataset } from '../utils';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
-import { shapeFromDataset } from "../utils/shapeFromDataset";
+import { dereferenceShape, shapeFromDataset } from "../utils/shapeFromDataset";
 import { skolemiseDataset } from "../utils/skolemize";
+import { importKey, signQuads, verifyQuads } from "@jeswr/rdfjs-sign/dist";
 
 let i = 0;
 // Making this deterministic improves query cachability
@@ -91,11 +92,45 @@ const res = yargs(hideBin(process.argv))
         type: 'string',
         description: 'A path for the user data',
         demandOption: true,
+    },
+    k: {
+        alias: 'privateKey',
+        type: 'string',
+        description: 'A path for the users private key to sign data with',
+        demandOption: true,
     }
   })
   .parse()
 
-const { w: webIdString, p: port, u: userDataPath, s: interfaceServer } = res as Awaited<typeof res>;
+const { w: webIdString, p: port, u: userDataPath, s: interfaceServer, k: privateKeyPath } = res as Awaited<typeof res>;
+const privateKey = JSON.parse(fs.readFileSync(privateKeyPath, 'utf-8'));
+const keyParams = {
+    name: 'ECDSA',
+    namedCurve: 'P-384',
+  };
+  
+async function sign(quads: Quad[]): Promise<string> {
+    return signQuads(quads, await crypto.subtle.importKey("jwk", privateKey, keyParams, true, ["sign"]));
+}
+
+async function postSignedDataset(url: string, store: DatasetCore) {
+    const bnode = blankNode();
+    // FIXME: Choose semething better here
+    const claims = namedNode('http://schema.org/claim');
+
+    const newData = new Store();
+    for (const q of store) {
+        newData.add(quad(bnode, claims, quad(q.subject, q.predicate, q.object)));
+    }
+
+    // This is very hacky modelling. It should be by ... on behalf of ...
+    newData.add(quad(bnode, namedNode('http://schema.org/claimedBy'), namedNode(webIdString)));
+    newData.add(quad(bnode, namedNode('http://schema.org/signature'), literal(await sign([...store]))));
+
+    console.log('-'.repeat(100));
+    console.log('Sending data to', url);
+    return postDataset(url, newData)
+}
 
 // Future work: make use of tooling that exposes composed tooling via a universal API
 const webId = namedNode(webIdString);
@@ -358,22 +393,81 @@ async function continueProcess(processId: string) {
     // Also note that the original input prompted is "leaked" in the negotiation so we
     // need to work out how to allow privacy policies around that information to be set
     memory[processId].negotiationAgent = webid.conversationalAgent['@id'];
-    return postDataset(webid.conversationalAgent['@id'], new Store([
+
+    const bnode = blankNode();
+    // FIXME: Choose semething better here
+    const claims = namedNode('http://schema.org/claim');
+    const toSend = new Store([
         ...allRelevantData,
         // TODO: Add in the correct modelling 
         quad(namedNode(webIdString), namedNode('http://example.org/message'), literal(ngText)),
-    ]))
+    ]);
+
+    // const newData = new Store();
+
+    // for (const q of toSend) {
+    //     newData.add(quad(bnode, claims, quad(q.subject, q.predicate, q.object)));
+    // }
+
+    // // This is very hacky modelling. It should be by ... on behalf of ...
+    // newData.add(quad(bnode, namedNode('http://schema.org/claimedBy'), namedNode(webIdString)));
+    // newData.add(quad(bnode, namedNode('http://schema.org/signature'), literal(await sign([...toSend]))));
+
+    // console.log('-'.repeat(100));
+    // console.log('Sending data to', webid.conversationalAgent['@id']);
+    return postSignedDataset(webid.conversationalAgent['@id'], toSend)
     // FIXME: We should reach a point where after this post we don't need to retain context of
     // the current conversation, and any context that is required is sent back by the agent we are
     // conversing with
 }
 
 app.post('/agent', async (req, res) => {
-    const dataset = await req.dataset?.();
-    // console.log('Agent request recieved');
-    if (!dataset) {
+    console.log('Agent request recieved');
+
+    const _dataset = await req.dataset?.();
+    console.log('Agent request recieved - dataset extracted');
+
+    // _dataset?.match(null, namedNode('http://schema.org/claim'), null, null);
+    if (!_dataset) {
+        console.log('Invalid request, expected a dataset to be posted');
         return res.status(400).send('Invalid request, expected a dataset to be posted');
     }
+
+    // FIXME: THIS SECTION SHOULD BE STRUCTURED REASONING
+    const asserter = [..._dataset.match(null, namedNode('http://schema.org/claimedBy'), null, null)];
+    const signature = [..._dataset.match(null, namedNode('http://schema.org/signature'), null, null)];
+
+    if (asserter.length !== 1 || signature.length !== 1 || !signature[0].subject.equals(asserter[0].subject)) {
+        console.log('Invalid request, expected exactly one message to be posted');
+        return res.status(400).send('Invalid request, expected exactly one message to be posted');
+    }
+
+    const { key } = await dereferenceShape(WebIdShapeShapeType, asserter[0].object.value);
+
+    // FIXME: THIS SECTION SHOULD BE STRUCTURED REASONING
+
+    const dataset = new Store();
+    for (const quad of _dataset.match(asserter[0].subject, namedNode('http://schema.org/claim'), null, null)) {
+        if (quad.object.termType === 'Quad') {
+            dataset.add(quad.object);
+        }
+    }
+
+    if (!key) {
+        // FIXME: Fix error msg
+        console.log('No key in webid');
+        return res.status(400).send('No Key in webid');
+    }
+
+    console.log('Verifying quads', await write([...dataset]), asserter[0].object.value, signature[0].object.value, key);
+
+    // We should not error in cases like this, we just shouldn't validate the data
+    if (!await verifyQuads([...dataset], signature[0].object.value, await importKey(key))) {
+        // FIXME: Fix error msg
+        console.log('quads not verified');
+        return res.status(400).send('quads not verified');
+    }
+
     // console.log(...dataset);
     const message = [...dataset.match(null, namedNode('http://example.org/message'), null, null)];
 
@@ -583,7 +677,7 @@ app.post('/', async (req, res) => {
 
         return;
     } catch (e) {
-        console.warn('Unable to execute user prompted action');
+        console.warn('Unable to execute user prompted action', e);
     }
 
     try {
@@ -643,7 +737,7 @@ app.post('/', async (req, res) => {
 
         if (confirm && negotiationAgent && action) {
             console.log('Posting action to:', negotiationAgent);
-            postDataset(negotiationAgent, action);
+            postSignedDataset(negotiationAgent, action);
         }
         // console.log('The event is:', processId, confirm);
         
