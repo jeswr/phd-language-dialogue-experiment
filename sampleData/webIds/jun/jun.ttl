@@ -4,5 +4,5 @@
 
 <#me> a foaf:Person ;
     # Hacky - we are not including details about what kind of key this is for instance
-    cert:key "BKL8ypCVyJpfeT1OCdUYhv/Yzo3JFv8h2Xq8NX3BHZEa5UL5Xazk4BXExac3rQYUqGk7yQBe6SFaDu1UHEPrcxhzU+umk1bQAa0OJVYEgFyjpo54adU/S/cN7Wr79kBp3g==" ;
+    cert:key "BGxATV0qAzWy4YDIqGIKbKYBbSn44eIVWzoXS6etwi995r+AeHkiT9/qqju9mAgg+BXdSqvYNuTgcNnUbBIKVXpqJPw5xtB5AknIsRV1sNU01+u1ZGGRyiNdy+Bok0jhGQ==" ;
     :conversationalAgent <http://localhost:3005/agent> .

@@ -23,7 +23,7 @@ import { getSubjects, postDataset } from '../utils';
 import { dereferenceToStore } from '../utils/dereferenceToStore';
 import { dereferenceShape, shapeFromDataset } from "../utils/shapeFromDataset";
 import { skolemiseDataset } from "../utils/skolemize";
-import { importKey, signQuads, verifyQuads } from "@jeswr/rdfjs-sign/dist";
+import { importKey, signQuads, verifyQuads, keyParams } from "@jeswr/rdfjs-sign";
 
 let i = 0;
 // Making this deterministic improves query cachability
@@ -104,11 +104,7 @@ const res = yargs(hideBin(process.argv))
 
 const { w: webIdString, p: port, u: userDataPath, s: interfaceServer, k: privateKeyPath } = res as Awaited<typeof res>;
 const privateKey = JSON.parse(fs.readFileSync(privateKeyPath, 'utf-8'));
-const keyParams = {
-    name: 'ECDSA',
-    namedCurve: 'P-384',
-  };
-  
+
 async function sign(quads: Quad[]): Promise<string> {
     return signQuads(quads, await crypto.subtle.importKey("jwk", privateKey, keyParams, true, ["sign"]));
 }
@@ -119,13 +115,16 @@ async function postSignedDataset(url: string, store: DatasetCore) {
     const claims = namedNode('http://schema.org/claim');
 
     const newData = new Store();
+    const storeToSign = new Store();
     for (const q of store) {
-        newData.add(quad(bnode, claims, quad(q.subject, q.predicate, q.object)));
+        const newQ = quad(q.subject, q.predicate, q.object);
+        storeToSign.add(newQ);
+        newData.add(quad(bnode, claims, newQ));
     }
 
     // This is very hacky modelling. It should be by ... on behalf of ...
     newData.add(quad(bnode, namedNode('http://schema.org/claimedBy'), namedNode(webIdString)));
-    newData.add(quad(bnode, namedNode('http://schema.org/signature'), literal(await sign([...store]))));
+    newData.add(quad(bnode, namedNode('http://schema.org/signature'), literal(await sign([...storeToSign]))));
 
     console.log('-'.repeat(100));
     console.log('Sending data to', url);
