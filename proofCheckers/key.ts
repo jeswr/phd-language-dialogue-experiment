@@ -38,8 +38,6 @@ class ShapeVerifier {
 }
 
 // r; <http://www.w3.org/2000/10/swap/reason#>
-
-
 // skolem:lemma3 a r:Extraction;
 //     r:gives {
 //         {
