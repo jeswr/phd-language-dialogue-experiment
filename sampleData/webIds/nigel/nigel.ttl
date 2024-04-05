@@ -1,5 +1,7 @@
 @prefix : <http://example.org/test#> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix cert: <http://www.w3.org/ns/auth/cert#> .
 
 <#me> a foaf:Person ;
+    cert:key "BJGqfJRQjD6z9meDZDuFnXMmiu7W9bz6IqKAatnEIbD3TaaNBqwnWGwmv0EbHexKJK1qZTOR/5WunBRkv1fCOR3LylH9V/cqNJ8ZoP5IxmGn9A2FGur6A8MMrPTc03LZcw==" ;
     :conversationalAgent <http://localhost:3006/agent> .
