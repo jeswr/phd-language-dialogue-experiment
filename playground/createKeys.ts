@@ -2,7 +2,7 @@ import { generateKeyPair, exportKey, signQuads, verifyQuads, keyParams, importKe
 import {DataFactory } from "n3";
 import * as fs from 'fs';
 import * as path from 'path';
-import { dereferenceToStore } from "./utils";
+import { dereferenceToStore } from "../utils";
 const { namedNode, quad } = DataFactory;
 
 
