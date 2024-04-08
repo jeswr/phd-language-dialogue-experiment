@@ -15,3 +15,5 @@ pack:policy a rdf:Property ;
     rdfs:comment "The policy that is used to determine the trustworthiness of the statement." ;
     rdfs:domain rdf:Statement ;
     rdfs:range rdf:Policy .
+
+[] 

@@ -13,9 +13,10 @@ const CLAIMS = namedNode('https://example.com/claims');
 // This should be done within the bounds of DToU requirements
 function performExtractions(store: Store) {
     const claims = new Store();
-    for (const { subject } of store.match(null, CLAIMS, null, defaultGraph())) {
-
-        claims.add(quad);
+    for (const { subject, object } of store.match(null, CLAIMS, null, defaultGraph())) {
+        if (object.termType === 'Quad') {
+            claims.add(object);
+        }
     }
     return claims;
 }

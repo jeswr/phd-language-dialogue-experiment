@@ -2,6 +2,7 @@
 node_modules
 dist
 ldo
+shapes/**/*.shex
 shapes/*.shex
 shapes/*.ttl
 trust/components/
