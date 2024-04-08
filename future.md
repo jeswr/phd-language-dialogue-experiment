@@ -10,7 +10,3 @@ Notes on modelling
  - Each set of quoted claims can generally be considered to be "unproven" and can
  be elevated in scope once proven (be it cryptographically, N3 style proof etc.)
 
-```n3
-
-
-```
