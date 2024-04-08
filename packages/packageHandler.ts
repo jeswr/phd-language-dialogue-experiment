@@ -13,7 +13,7 @@ import { Store } from "@rdfjs/types";
 // negotiate for themselves. Claude is one of them. In cases like this, we write interfaces
 // on our side that reflect the policies that such services would have.
 class ClaudeExchangeHandler {
-    private readonly dataExchangeHandler: DataExchangeHandler;
+    // private readonly dataExchangeHandler: DataExchangeHandler;
 
     constructor() {
 
