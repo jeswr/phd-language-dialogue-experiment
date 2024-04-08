@@ -490,6 +490,10 @@ app.post('/agent', async (req, res) => {
         negotiatorData: dataset,
         skolemid: 0
     };
+    console.log('-'.repeat(100));
+    console.log('Negotiating with', negotiationWebId);
+    console.log('-'.repeat(100));
+    // process.exit(0);
 
     const question = 'You are an agent representing the user with WebId <' + webIdString + '>.\n' +
     'You have received a message from another agent representing the user <' + negotiationWebId + '>.\n' +
