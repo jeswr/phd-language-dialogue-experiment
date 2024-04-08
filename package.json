@@ -73,7 +73,7 @@
     "eventemitter": "^0.3.3",
     "events": "^3.3.0",
     "express": "^4.19.2",
-    "eyereasoner": "^13.1.0",
+    "eyereasoner": "^15.1.1",
     "https": "^1.0.0",
     "jsonld": "^8.3.2",
     "jsonld-signatures": "^11.2.1",
