@@ -736,6 +736,7 @@ app.post('/', async (req, res) => {
 
         if (confirm && negotiationAgent && action) {
             console.log('Posting action to:', negotiationAgent);
+            console.log('The action is:', await write([...action]));
             postSignedDataset(negotiationAgent, action);
         }
         // console.log('The event is:', processId, confirm);

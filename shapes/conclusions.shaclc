@@ -18,6 +18,7 @@ shape ex:PaymentShape -> gr:PaymentMethod {
     gr:hasCurrency [1..1] xsd:string .
 }
 
+# This is getting user confirmation
 shape ex:EventConfirmationShape -> schema:ScheduleAction {
     ex:event [1..1] @ex:EventShape .
     ex:processId [1..1] xsd:string .
@@ -27,3 +28,16 @@ shape ex:ConfirmationShape {
     ex:confirm [1..1] xsd:boolean .
     ex:processId [1..1] xsd:string .
 }
+
+# This is getting machine-confirmation
+# FIXME: Generalise / indirect this in the future
+shape ex:ProposedEventShape -> ex:ProposedEvent {
+    ex:event [1..1] @ex:EventShape .
+}
+
+shape ex:ConfirmedEventShape -> ex:ConfirmedEvent {
+    ex:event [1..1] @ex:EventShape .
+}
+
+# The more general version of these will probably
+# just mmake use of quited triples

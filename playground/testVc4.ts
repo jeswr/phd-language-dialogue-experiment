@@ -38,7 +38,7 @@ const {defaultDocumentLoader} = vc;
 
 const testContextLoader = extendContextLoader(async url => {
   const remoteDocument = remoteDocuments.get(url);
-  if(remoteDocument) {
+  if (remoteDocument) {
     return {
       contextUrl: null,
       document: jsonld.clone(remoteDocument),
