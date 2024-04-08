@@ -126,8 +126,8 @@ async function postSignedDataset(url: string, store: DatasetCore) {
     newData.add(quad(bnode, namedNode('http://schema.org/claimedBy'), namedNode(webIdString)));
     newData.add(quad(bnode, namedNode('http://schema.org/signature'), literal(await sign([...storeToSign]))));
 
-    console.log('-'.repeat(100));
-    console.log('Sending data to', url);
+    // console.log('-'.repeat(100));
+    // console.log('Sending data to', url);
     return postDataset(url, newData)
 }
 
@@ -313,13 +313,13 @@ async function continueProcess(processId: string) {
 
         // HACK! Skolemise the dataset because the validation library
         // expects namedNodes as input
-        console.log('Done', await write([...dataset]));
+        // console.log('Done', await write([...dataset]));
 
         // Here we are hard coding the rules for the event shape here in JS (for now...)
         // for (const event of shapeMatches(EventShapeShapeType, dataset)) {
         //     console.log('Event:', event, displayEventShape(shaped));
         // }
-        console.log('Event:', shaped, displayEventShape(shaped));
+        // console.log('Event:', shaped, displayEventShape(shaped));
 
         const d1 = getDataset(createLdoDataset([]).usingType(EventConfirmationShapeShapeType).fromJson({
             // THIS IS A HACK! We should be able to send blank nodes
@@ -342,7 +342,7 @@ async function continueProcess(processId: string) {
     memory[processId].callNumber += 1;
 
     // const { prompt, negotiationWebId, permittedDocuments } = memory[processId];
-    console.log('The prompt is:', prompt, negotiationWebId, permittedDocuments);
+    // console.log('The prompt is:', prompt, negotiationWebId, permittedDocuments);
 
     if (!negotiationWebId) {
         throw new Error('No negotiation WebId found');
@@ -384,8 +384,8 @@ async function continueProcess(processId: string) {
     const webIdDataset = await dereferenceToStore(negotiationWebId);
     const webIdLdoDataset = createLdoDataset([...webIdDataset]);
     const webid = webIdLdoDataset.usingType(WebIdShapeShapeType).fromSubject(negotiationWebId);
-    console.log('The correspondant agent is:', webid.conversationalAgent['@id']);
-    console.log('The question to ask the agent is:', ngText);
+    // console.log('The correspondant agent is:', webid.conversationalAgent['@id']);
+    // console.log('The question to ask the agent is:', ngText);
 
     // FIXME: Use a shape here and add the correct modelling for the user, conversational agent
     // and who is saying what
@@ -491,6 +491,7 @@ app.post('/agent', async (req, res) => {
         skolemid: 0
     };
     console.log('-'.repeat(100));
+    console.log('Starting process:', processId, memory[processId]);
     console.log('Negotiating with', negotiationWebId);
     console.log('-'.repeat(100));
     // process.exit(0);
@@ -631,7 +632,7 @@ app.post('/', async (req, res) => {
         // find a way of signalling that we usually don't need to do this.
         const { negotiationWebId, requiredNamedGraphs } = parseRequiredNamedGraphs(ngText);
         memory[processId].negotiationWebId = negotiationWebId;
-        console.log('The WebId + named graphs required to answer the user queries are:', { negotiationWebId, requiredNamedGraphs });
+        // console.log('The WebId + named graphs required to answer the user queries are:', { negotiationWebId, requiredNamedGraphs });
 
         // Handling permissions
         // We now need to check if the agent representing the user we are negotiating with has permissions
@@ -647,7 +648,7 @@ app.post('/', async (req, res) => {
 
         // If there is at least one named graph that needs to be requested, then ask our human interface
         if (requestNamedGraphs.length > 0) {
-            console.log('Requesting access to named graphs:', requestNamedGraphs);
+            // console.log('Requesting access to named graphs:', requestNamedGraphs);
 
             // There needs to be some kind of internal cleanup when this request fails
             // in order to stop user tasks lingering in memory
@@ -802,7 +803,7 @@ async function getAllowedGraphs(negotiationWebId: string) {
         }`, { sources: [userDataStore] });
 
     const allowedNamedGraphs = await bindings.map((binding) => {
-        console.log('The binding is:', ...binding.values());
+        // console.log('The binding is:', ...binding.values());
         return binding.get('o')!.value;
     }).toArray();
     return allowedNamedGraphs;
