@@ -8,7 +8,6 @@
 :claimSet2 a pack:ClaimSet ;
     pack:claims <<:a1 :b :c>>, <<:a2 :b :c2>> .
 
-
 :package1 a pack:Package ;
   pack:claims :claimSet ;
   # Open question: for what we are doing do we need a distinction between something being believed for an exchange and something being asserted for an exchange

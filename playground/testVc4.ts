@@ -1,5 +1,15 @@
 // @ts-nocheck
 async function main() {
+  const assertionController = {
+    '@context': 'https://w3id.org/security/v2',
+    id: 'https://example.edu/issuers/565049',
+    // actual keys are going to be added in the test suite before() block
+    assertionMethod: [
+      "https://example.edu/issuers/keys/1"
+    ],
+    authentication: []
+  };
+
   const vc = await import('@digitalbazaar/vc')  
   const EcdsaMultikey = await import('@digitalbazaar/ecdsa-multikey');
     const {
@@ -21,6 +31,7 @@ async function main() {
 const remoteDocuments = new Map();
 remoteDocuments.set(vcExamplesV1CtxUrl, vcExamplesV1Ctx);
 remoteDocuments.set(odrlCtxUrl, odrlCtx);
+remoteDocuments.set("https://example.edu/issuers/565049", assertionController);
 
 const {extendContextLoader} = jsigs;
 const {defaultDocumentLoader} = vc;
@@ -87,7 +98,18 @@ const testContextLoader = extendContextLoader(async url => {
       suite,
       documentLoader: testContextLoader
     });
-    console.log(suite, JSON.stringify(verifiableCredential, null, 2));
+
+    console.log(
+      // suite.verificationMethod,
+      JSON.stringify(await vc.verifyCredential({
+        credential: verifiableCredential,
+        suite,
+        documentLoader: testContextLoader,
+        // FIXME: understand what this is doing
+        assertionController
+      }), null, 2)
+    )
+    // console.log(suite, JSON.stringify(verifiableCredential, null, 2));
 }
 
 main();
