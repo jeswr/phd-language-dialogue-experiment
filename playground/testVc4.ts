@@ -1,3 +1,5 @@
+import parse from 'rdf-parse';
+
 // @ts-nocheck
 async function main() {
   const assertionController = {
@@ -98,6 +100,9 @@ const testContextLoader = extendContextLoader(async url => {
       suite,
       documentLoader: testContextLoader
     });
+
+    console.log(verifiableCredential);
+    // parse.parse()
 
     console.log(
       // suite.verificationMethod,
