@@ -91,21 +91,22 @@ async function main() {
   const credential = jsonld.clone({
     '@context': [
       'https://www.w3.org/2018/credentials/v1',
-      'https://www.w3.org/2018/credentials/examples/v1'
+      // 'https://www.w3.org/2018/credentials/examples/v1'
     ],
     id: 'http://example.edu/credentials/1872',
-    type: ['VerifiableCredential', 'AlumniCredential'],
+    type: ['VerifiableCredential'],
     issuer: 'https://example.edu/issuers/565049',
     issuanceDate: '2010-01-01T19:23:24Z',
     credentialSubject: {
       id: 'https://jeswr.org/#me',
-      alumniOf: '<span lang="en">Example University</span>'
+      // alumniOf: '<span lang="en">Example University</span>'
+      ['http://example.edu/alumniOf']: 'Example University'
     }
   });
   const verifiableCredential = await vc.issue({
     credential,
     suite,
-    documentLoader: testContextLoader
+    // documentLoader: testContextLoader
   });
 
   console.log(verifiableCredential);
@@ -116,7 +117,7 @@ async function main() {
       suite,
       documentLoader: testContextLoader,
       // FIXME: understand what this is doing
-      assertionController
+      // assertionController
     }), null, 2)
   )
   // console.log(suite, JSON.stringify(verifiableCredential, null, 2));
