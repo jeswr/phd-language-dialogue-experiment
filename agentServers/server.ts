@@ -126,8 +126,6 @@ async function postSignedDataset(url: string, store: DatasetCore) {
     newData.add(quad(bnode, namedNode('http://schema.org/claimedBy'), namedNode(webIdString)));
     newData.add(quad(bnode, namedNode('http://schema.org/signature'), literal(await sign([...storeToSign]))));
 
-    // console.log('-'.repeat(100));
-    // console.log('Sending data to', url);
     return postDataset(url, newData)
 }
 

@@ -23,11 +23,12 @@ This ontology is designed for *internal use* by software (AI) agents acting on b
 2. Scope
 
 In scope:
-
+ - 
 
 Out of scope
  - Modelling the *correctness* of external systems/evalutions (e.g. from LLM inference). This is instead needs to be modelled in the data that is sent to a system.
- - Modelling the 
+ - Modelling the *risk assessment* of misuse of data (this is a separate ontology)
+ - Modelling usage control policies
 
 3. Level of Formality
 
