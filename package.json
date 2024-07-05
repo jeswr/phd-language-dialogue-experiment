@@ -45,7 +45,7 @@
     "@digitalbazaar/security-context": "^1.0.1",
     "@digitalbazaar/security-document-loader": "^2.0.0",
     "@digitalbazaar/vc": "^6.2.0",
-    "@gomomento/sdk": "^1.71.0",
+    "@gomomento/sdk": "^1.92.1",
     "@gomomento/sdk-web": "^1.71.0",
     "@inquirer/prompts": "^4.3.0",
     "@jeswr/pretty-turtle": "^1.4.0",
