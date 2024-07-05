@@ -2,16 +2,6 @@ import parse from 'rdf-parse';
 
 // @ts-nocheck
 async function main() {
-  const assertionController = {
-    '@context': 'https://w3id.org/security/v2',
-    id: 'https://example.edu/issuers/565049',
-    // actual keys are going to be added in the test suite before() block
-    assertionMethod: [
-      "https://example.edu/issuers/keys/1"
-    ],
-    authentication: []
-  };
-
   // @ts-expect-error
   const vc = await import('@digitalbazaar/vc')
   // @ts-expect-error
@@ -39,7 +29,15 @@ async function main() {
   const remoteDocuments = new Map();
   remoteDocuments.set(vcExamplesV1CtxUrl, vcExamplesV1Ctx);
   remoteDocuments.set(odrlCtxUrl, odrlCtx);
-  remoteDocuments.set("https://example.edu/issuers/565049", assertionController);
+  remoteDocuments.set("https://example.edu/issuers/565049", {
+    '@context': 'https://w3id.org/security/v2',
+    id: 'https://example.edu/issuers/565049',
+    // actual keys are going to be added in the test suite before() block
+    assertionMethod: [
+      "https://example.edu/issuers/keys/1"
+    ],
+    authentication: []
+  });
 
   const { extendContextLoader } = jsigs;
   const { defaultDocumentLoader } = vc;
@@ -69,23 +67,8 @@ async function main() {
 
   // set up the signature suite, using the generated key
   const suite = new Ed25519Signature2018({
-    // verificationMethod: 'https://example.edu/issuers/keys/1',
     key: keyPair
   });
-
-  // set up the ECDSA key pair that will be signing and verifying
-  const ecdsaKeyPair = await EcdsaMultikey.generate({
-    curve: 'P-256',
-    id: 'https://example.edu/issuers/keys/2',
-    controller: 'https://example.edu/issuers/565049'
-  });
-
-  // add the key to the controller doc (authorizes its use for assertion)
-  // assertionController.assertionMethod.push(ecdsaKeyPair.id);
-  // register the key document with documentLoader
-  remoteDocuments.set(
-    'https://example.edu/issuers/keys/2',
-    await ecdsaKeyPair.export({ publicKey: true }));
 
   // @ts-expect-error
   const credential = jsonld.clone({
@@ -99,14 +82,12 @@ async function main() {
     issuanceDate: '2010-01-01T19:23:24Z',
     credentialSubject: {
       id: 'https://jeswr.org/#me',
-      // alumniOf: '<span lang="en">Example University</span>'
       ['http://example.edu/alumniOf']: 'Example University'
     }
   });
   const verifiableCredential = await vc.issue({
     credential,
     suite,
-    // documentLoader: testContextLoader
   });
 
   console.log(verifiableCredential);
@@ -116,11 +97,8 @@ async function main() {
       credential: verifiableCredential,
       suite,
       documentLoader: testContextLoader,
-      // FIXME: understand what this is doing
-      // assertionController
     }), null, 2)
-  )
-  // console.log(suite, JSON.stringify(verifiableCredential, null, 2));
+  );
 }
 
 main();
