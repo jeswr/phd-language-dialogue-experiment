@@ -25,6 +25,14 @@ import { dereferenceShape, shapeFromDataset } from "../utils/shapeFromDataset";
 import { skolemiseDataset } from "../utils/skolemize";
 import { importKey, signQuads, verifyQuads, keyParams } from "@jeswr/rdfjs-sign";
 
+process.traceDeprecation = false
+process.on('warning', () => {
+    console.log('warning');
+});
+process.on('message', () => {
+    console.log('message')
+});
+
 let i = 0;
 // Making this deterministic improves query cachability
 function v4pho() {
@@ -679,7 +687,7 @@ app.post('/', async (req, res) => {
 
         return;
     } catch (e) {
-        console.warn('Unable to execute user prompted action', e);
+        // console.warn('Unable to execute user prompted action', e);
     }
 
     try {
@@ -725,7 +733,7 @@ app.post('/', async (req, res) => {
         res.status(200).send('Message Recieved').end();
         return continueProcess(processId);
     } catch (e) {
-        console.warn('Unable to execute access request action');
+        // console.warn('Unable to execute access request action');
     }
 
     try {
@@ -756,7 +764,7 @@ app.post('/', async (req, res) => {
         // res.status(200).send('Message Recieved').end();
         return;
     } catch (e) {
-        console.warn('Unable to execute confirmation action');
+        // console.warn('Unable to execute confirmation action');
     }
 
     return res.status(500).send('Unknown error');
