@@ -7,7 +7,7 @@
     "interface:cli": "ts-node humanInterfaces/run",
     "build": "tsc",
     "ldo": "ldo build --input ./shapes --output ./ldo && ldo build --input ./shapes/proofCheckers --output ./ldo/proofCheckers",
-    "shapes": "shacl2shex shapes/ && npm run ldo && rm -rf ./shapes/*.shex && rm -rf ./shapes/**/*.shex",
+    "shapes": "shacl2shex shapes/ && shacl2shex shapes/proofCheckers && shacl2shex shapes/webId.shaclc shapes/webId.shex && shacl2shex shapes/package.shaclc shapes/package.shex && npm run ldo && rm -rf ./shapes/*.shex && rm -rf ./shapes/**/*.shex",
     "watch:shapes": "nodemon --watch shapes/*.shaclc -x \"npm run shapes\"",
     "watch:tsc": "tsc --watch",
     "watch": "run-p watch:*",
